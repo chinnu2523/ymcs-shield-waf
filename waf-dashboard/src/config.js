@@ -1,4 +1,3 @@
-// Centralized API configuration for local and live environments
-const API_BASE = process.env.REACT_APP_API_BASE || "http://localhost:4000/api";
+const API_BASE = "https://ymcs-shield-backend.onrender.com/api";
 
 export default API_BASE;
