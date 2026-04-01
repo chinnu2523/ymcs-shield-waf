@@ -1,0 +1,1277 @@
+/* ============================================================
+   QUANTUM GUARD — Complete Design System
+   Vanilla CSS · No Tailwind · Self-Contained
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&display=swap');
+
+/* ============================================================
+   1. DESIGN TOKENS — CSS Custom Properties
+   ============================================================ */
+
+:root {
+  /* Core Palette */
+  --bg-dark:          #05070a;
+  --bg-deep:          #030508;
+  --bg-panel:         rgba(9, 13, 22, 0.75);
+  --bg-card:          rgba(12, 17, 28, 0.6);
+
+  /* Neon Accents */
+  --primary:          #00f2ff;
+  --primary-glow:     rgba(0, 242, 255, 0.35);
+  --primary-dim:      rgba(0, 242, 255, 0.08);
+
+  --secondary:        #bd00ff;
+  --secondary-glow:   rgba(189, 0, 255, 0.30);
+  --secondary-dim:    rgba(189, 0, 255, 0.08);
+
+  --accent:           #ff0055;
+  --accent-glow:      rgba(255, 0, 85, 0.30);
+
+  /* Status */
+  --success:          #00ff95;
+  --success-glow:     rgba(0, 255, 149, 0.30);
+  --success-dim:      rgba(0, 255, 149, 0.08);
+
+  --danger:           #ff3333;
+  --danger-glow:      rgba(255, 51, 51, 0.30);
+  --danger-dim:       rgba(255, 51, 51, 0.08);
+
+  --warning:          #f59e0b;
+  --warning-glow:     rgba(245, 158, 11, 0.30);
+
+  /* Neon Aliases (used in components) */
+  --neon-blue:        #00f2ff;
+  --neon-blue-glow:   rgba(0, 242, 255, 0.35);
+  --neon-purple:      #bd00ff;
+  --neon-purple-glow: rgba(189, 0, 255, 0.30);
+  --neon-red:         #ff3333;
+  --neon-red-glow:    rgba(255, 51, 51, 0.30);
+  --neon-green:       #00ff95;
+  --neon-green-glow:  rgba(0, 255, 149, 0.30);
+
+  /* Text */
+  --text-main:        #e0e6ed;
+  --text-dim:         #64748b;
+  --text-muted:       #334155;
+
+  /* Borders */
+  --border:           rgba(255, 255, 255, 0.07);
+  --border-hover:     rgba(0, 242, 255, 0.20);
+
+  /* Typography */
+  --font-sans:        'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono:        'JetBrains Mono', 'Fira Code', monospace;
+}
+
+/* ============================================================
+   2. BASE RESET & GLOBAL STYLES
+   ============================================================ */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  height: 100%;
+  scroll-behavior: smooth;
+}
+
+body {
+  height: 100%;
+  background-color: var(--bg-dark);
+  color: var(--text-main);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.6;
+  overflow: hidden;
+  background-image:
+    radial-gradient(ellipse at 0% 0%,   rgba(0, 242, 255, 0.04)  0%, transparent 60%),
+    radial-gradient(ellipse at 100% 0%, rgba(189, 0, 255, 0.04)  0%, transparent 60%),
+    radial-gradient(ellipse at 50% 100%, rgba(0, 242, 255, 0.03) 0%, transparent 60%);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  height: 100%;
+}
+
+/* ============================================================
+   3. SCROLLBAR
+   ============================================================ */
+
+::-webkit-scrollbar        { width: 4px; height: 4px; }
+::-webkit-scrollbar-track  { background: transparent; }
+::-webkit-scrollbar-thumb  { background: rgba(255,255,255,0.1); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--primary); }
+
+.custom-scrollbar::-webkit-scrollbar       { width: 3px; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0,242,255,0.15); border-radius: 3px; }
+
+/* ============================================================
+   4. TYPOGRAPHY UTILITIES
+   ============================================================ */
+
+h1 { font-size: 2.25rem;  line-height: 1.1; font-weight: 900; }
+h2 { font-size: 1.5rem;   line-height: 1.2; font-weight: 800; }
+h3 { font-size: 1.125rem; line-height: 1.3; font-weight: 700; }
+h4 { font-size: 0.875rem; line-height: 1.4; font-weight: 700; }
+
+/* Font sizes */
+.text-xs   { font-size: 0.75rem; }
+.text-sm   { font-size: 0.875rem; }
+.text-base { font-size: 1rem; }
+.text-lg   { font-size: 1.125rem; }
+.text-xl   { font-size: 1.25rem; }
+.text-2xl  { font-size: 1.5rem; }
+.text-3xl  { font-size: 1.875rem; }
+.text-4xl  { font-size: 2.25rem; }
+.text-5xl  { font-size: 3rem; }
+.text-6xl  { font-size: 3.75rem; }
+.text-7xl  { font-size: 4.5rem; }
+.text-8xl  { font-size: 6rem; }
+
+/* Font weights */
+.font-light    { font-weight: 300; }
+.font-normal   { font-weight: 400; }
+.font-medium   { font-weight: 500; }
+.font-semibold { font-weight: 600; }
+.font-bold     { font-weight: 700; }
+.font-extrabold{ font-weight: 800; }
+.font-black    { font-weight: 900; }
+
+/* Font family */
+.font-sans  { font-family: var(--font-sans); }
+.font-mono  { font-family: var(--font-mono); }
+
+/* Letter spacing */
+.tracking-tighter { letter-spacing: -0.05em; }
+.tracking-tight   { letter-spacing: -0.025em; }
+.tracking-normal  { letter-spacing: 0em; }
+.tracking-wide    { letter-spacing: 0.025em; }
+.tracking-wider   { letter-spacing: 0.05em; }
+.tracking-widest  { letter-spacing: 0.1em; }
+
+/* Line height */
+.leading-none    { line-height: 1; }
+.leading-tight   { line-height: 1.25; }
+.leading-snug    { line-height: 1.375; }
+.leading-normal  { line-height: 1.5; }
+.leading-relaxed { line-height: 1.625; }
+.leading-loose   { line-height: 2; }
+
+/* Text transform */
+.uppercase   { text-transform: uppercase; }
+.lowercase   { text-transform: lowercase; }
+.capitalize  { text-transform: capitalize; }
+.italic      { font-style: italic; }
+
+/* Text alignment */
+.text-left   { text-align: left; }
+.text-center { text-align: center; }
+.text-right  { text-align: right; }
+
+/* Text truncation */
+.truncate    { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Tactical label style */
+.text-tactical {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+/* ============================================================
+   5. COLOR UTILITIES
+   ============================================================ */
+
+/* Text colors */
+.text-white     { color: #ffffff; }
+.text-black     { color: #000000; }
+.text-main      { color: var(--text-main); }
+.text-dim       { color: var(--text-dim); }
+.text-muted     { color: var(--text-muted); }
+.text-primary   { color: var(--primary); }
+.text-secondary { color: var(--secondary); }
+.text-accent    { color: var(--accent); }
+.text-success   { color: var(--success); }
+.text-danger    { color: var(--danger); }
+.text-warning   { color: var(--warning); }
+
+/* Neon text aliases */
+.text-neon-blue   { color: var(--neon-blue); }
+.text-neon-purple { color: var(--neon-purple); }
+.text-neon-red    { color: var(--neon-red); }
+.text-neon-green  { color: var(--neon-green); }
+
+/* Background colors */
+.bg-bg-dark    { background-color: var(--bg-dark); }
+.bg-bg-deep    { background-color: var(--bg-deep); }
+.bg-bg-panel   { background-color: var(--bg-panel); }
+.bg-primary    { background-color: var(--primary); }
+.bg-secondary  { background-color: var(--secondary); }
+.bg-success    { background-color: var(--success); }
+.bg-danger     { background-color: var(--danger); }
+.bg-white      { background-color: #ffffff; }
+.bg-black      { background-color: #000000; }
+
+/* Opacity tinted backgrounds (used with /N notation workarounds) */
+.bg-primary-dim    { background-color: var(--primary-dim); }
+.bg-secondary-dim  { background-color: var(--secondary-dim); }
+.bg-success-dim    { background-color: var(--success-dim); }
+.bg-danger-dim     { background-color: var(--danger-dim); }
+
+/* ============================================================
+   6. OPACITY UTILITIES
+   ============================================================ */
+
+.opacity-0   { opacity: 0; }
+.opacity-5   { opacity: 0.05; }
+.opacity-10  { opacity: 0.10; }
+.opacity-20  { opacity: 0.20; }
+.opacity-25  { opacity: 0.25; }
+.opacity-30  { opacity: 0.30; }
+.opacity-40  { opacity: 0.40; }
+.opacity-50  { opacity: 0.50; }
+.opacity-60  { opacity: 0.60; }
+.opacity-70  { opacity: 0.70; }
+.opacity-75  { opacity: 0.75; }
+.opacity-80  { opacity: 0.80; }
+.opacity-90  { opacity: 0.90; }
+.opacity-100 { opacity: 1; }
+
+/* ============================================================
+   7. LAYOUT UTILITIES
+   ============================================================ */
+
+/* Display */
+.block         { display: block; }
+.inline-block  { display: inline-block; }
+.inline        { display: inline; }
+.hidden        { display: none; }
+.flex          { display: flex; }
+.inline-flex   { display: inline-flex; }
+.grid          { display: grid; }
+
+/* Flex direction */
+.flex-col      { flex-direction: column; }
+.flex-row      { flex-direction: row; }
+.flex-row-reverse { flex-direction: row-reverse; }
+
+/* Flex wrap */
+.flex-wrap     { flex-wrap: wrap; }
+.flex-nowrap   { flex-wrap: nowrap; }
+
+/* Flex sizing */
+.flex-1        { flex: 1 1 0%; }
+.flex-auto     { flex: 1 1 auto; }
+.flex-none     { flex: none; }
+.flex-shrink-0 { flex-shrink: 0; }
+
+/* Align */
+.items-start    { align-items: flex-start; }
+.items-end      { align-items: flex-end; }
+.items-center   { align-items: center; }
+.items-stretch  { align-items: stretch; }
+.items-baseline { align-items: baseline; }
+
+/* Justify */
+.justify-start    { justify-content: flex-start; }
+.justify-end      { justify-content: flex-end; }
+.justify-center   { justify-content: center; }
+.justify-between  { justify-content: space-between; }
+.justify-around   { justify-content: space-around; }
+.justify-evenly   { justify-content: space-evenly; }
+
+/* Self-align */
+.self-start  { align-self: flex-start; }
+.self-center { align-self: center; }
+.self-end    { align-self: flex-end; }
+
+/* Gap */
+.gap-0  { gap: 0; }
+.gap-1  { gap: 0.25rem; }
+.gap-2  { gap: 0.5rem; }
+.gap-3  { gap: 0.75rem; }
+.gap-4  { gap: 1rem; }
+.gap-5  { gap: 1.25rem; }
+.gap-6  { gap: 1.5rem; }
+.gap-8  { gap: 2rem; }
+.gap-10 { gap: 2.5rem; }
+.gap-12 { gap: 3rem; }
+.gap-16 { gap: 4rem; }
+.gap-24 { gap: 6rem; }
+
+.gap-x-4  { column-gap: 1rem; }
+.gap-x-12 { column-gap: 3rem; }
+.gap-x-24 { column-gap: 6rem; }
+.gap-y-3  { row-gap: 0.75rem; }
+
+/* ============================================================
+   8. SIZING UTILITIES
+   ============================================================ */
+
+/* Width */
+.w-0      { width: 0; }
+.w-1      { width: 0.25rem; }
+.w-1\.5  { width: 0.375rem; }
+.w-2      { width: 0.5rem; }
+.w-3      { width: 0.75rem; }
+.w-4      { width: 1rem; }
+.w-5      { width: 1.25rem; }
+.w-6      { width: 1.5rem; }
+.w-7      { width: 1.75rem; }
+.w-8      { width: 2rem; }
+.w-9      { width: 2.25rem; }
+.w-10     { width: 2.5rem; }
+.w-12     { width: 3rem; }
+.w-14     { width: 3.5rem; }
+.w-16     { width: 4rem; }
+.w-20     { width: 5rem; }
+.w-24     { width: 6rem; }
+.w-28     { width: 7rem; }
+.w-32     { width: 8rem; }
+.w-48     { width: 12rem; }
+.w-64     { width: 16rem; }
+.w-72     { width: 18rem; }
+.w-80     { width: 20rem; }
+.w-full   { width: 100%; }
+.w-screen { width: 100vw; }
+
+/* Height */
+.h-0      { height: 0; }
+.h-1      { height: 0.25rem; }
+.h-1\.5  { height: 0.375rem; }
+.h-2      { height: 0.5rem; }
+.h-3      { height: 0.75rem; }
+.h-4      { height: 1rem; }
+.h-5      { height: 1.25rem; }
+.h-6      { height: 1.5rem; }
+.h-7      { height: 1.75rem; }
+.h-8      { height: 2rem; }
+.h-9      { height: 2.25rem; }
+.h-10     { height: 2.5rem; }
+.h-12     { height: 3rem; }
+.h-14     { height: 3.5rem; }
+.h-16     { height: 4rem; }
+.h-20     { height: 5rem; }
+.h-24     { height: 6rem; }
+.h-40     { height: 10rem; }
+.h-48     { height: 12rem; }
+.h-64     { height: 16rem; }
+.h-72     { height: 18rem; }
+.h-full   { height: 100%; }
+.h-screen { height: 100vh; }
+.min-h-screen { min-height: 100vh; }
+.max-h-full   { max-height: 100%; }
+
+/* Special sizes */
+.w-\[1px\]   { width: 1px; }
+.h-\[1px\]   { height: 1px; }
+.w-\[2px\]   { width: 2px; }
+.h-\[2px\]   { height: 2px; }
+.h-\[4px\]   { height: 4px; }
+.w-\[450px\] { width: 450px; }
+.h-\[320px\] { height: 320px; }
+.h-\[360px\] { height: 360px; }
+.w-\[600px\] { width: 600px; }
+.h-\[600px\] { height: 600px; }
+
+/* ============================================================
+   9. SPACING — PADDING & MARGIN
+   ============================================================ */
+
+/* Padding */
+.p-0  { padding: 0; }
+.p-1  { padding: 0.25rem; }
+.p-2  { padding: 0.5rem; }
+.p-3  { padding: 0.75rem; }
+.p-4  { padding: 1rem; }
+.p-5  { padding: 1.25rem; }
+.p-6  { padding: 1.5rem; }
+.p-7  { padding: 1.75rem; }
+.p-8  { padding: 2rem; }
+.p-9  { padding: 2.25rem; }
+.p-10 { padding: 2.5rem; }
+.p-12 { padding: 3rem; }
+.p-16 { padding: 4rem; }
+.p-24 { padding: 6rem; }
+
+.px-1  { padding-left: 0.25rem; padding-right: 0.25rem; }
+.px-2  { padding-left: 0.5rem;  padding-right: 0.5rem; }
+.px-3  { padding-left: 0.75rem; padding-right: 0.75rem; }
+.px-4  { padding-left: 1rem;    padding-right: 1rem; }
+.px-5  { padding-left: 1.25rem; padding-right: 1.25rem; }
+.px-6  { padding-left: 1.5rem;  padding-right: 1.5rem; }
+.px-8  { padding-left: 2rem;    padding-right: 2rem; }
+.px-12 { padding-left: 3rem;    padding-right: 3rem; }
+
+.py-0  { padding-top: 0;        padding-bottom: 0; }
+.py-1  { padding-top: 0.25rem;  padding-bottom: 0.25rem; }
+.py-1\.5 { padding-top: 0.375rem; padding-bottom: 0.375rem; }
+.py-2  { padding-top: 0.5rem;   padding-bottom: 0.5rem; }
+.py-2\.5 { padding-top: 0.625rem; padding-bottom: 0.625rem; }
+.py-3  { padding-top: 0.75rem;  padding-bottom: 0.75rem; }
+.py-4  { padding-top: 1rem;     padding-bottom: 1rem; }
+.py-5  { padding-top: 1.25rem;  padding-bottom: 1.25rem; }
+.py-8  { padding-top: 2rem;     padding-bottom: 2rem; }
+
+.pt-0  { padding-top: 0; }
+.pt-4  { padding-top: 1rem; }
+.pt-8  { padding-top: 2rem; }
+.pb-2  { padding-bottom: 0.5rem; }
+.pb-12 { padding-bottom: 3rem; }
+.pl-0  { padding-left: 0; }
+.pr-3  { padding-right: 0.75rem; }
+
+/* Margin */
+.m-0   { margin: 0; }
+.mx-auto { margin-left: auto; margin-right: auto; }
+
+.mt-0  { margin-top: 0; }
+.mt-1  { margin-top: 0.25rem; }
+.mt-2  { margin-top: 0.5rem; }
+.mt-3  { margin-top: 0.75rem; }
+.mt-4  { margin-top: 1rem; }
+.mt-5  { margin-top: 1.25rem; }
+.mt-6  { margin-top: 1.5rem; }
+.mt-8  { margin-top: 2rem; }
+.mt-10 { margin-top: 2.5rem; }
+.mt-12 { margin-top: 3rem; }
+.mt-16 { margin-top: 4rem; }
+
+.mb-1  { margin-bottom: 0.25rem; }
+.mb-2  { margin-bottom: 0.5rem; }
+.mb-3  { margin-bottom: 0.75rem; }
+.mb-4  { margin-bottom: 1rem; }
+.mb-5  { margin-bottom: 1.25rem; }
+.mb-6  { margin-bottom: 1.5rem; }
+.mb-8  { margin-bottom: 2rem; }
+.mb-10 { margin-bottom: 2.5rem; }
+.mb-12 { margin-bottom: 3rem; }
+
+.mr-1  { margin-right: 0.25rem; }
+.mr-2  { margin-right: 0.5rem; }
+.mr-3  { margin-right: 0.75rem; }
+.ml-1  { margin-left: 0.25rem; }
+.ml-3  { margin-left: 0.75rem; }
+
+/* ============================================================
+   10. BORDER UTILITIES
+   ============================================================ */
+
+.border          { border: 1px solid var(--border); }
+.border-0        { border: none; }
+.border-2        { border: 2px solid var(--border); }
+.border-4        { border-width: 4px; }
+
+.border-t        { border-top: 1px solid var(--border); }
+.border-b        { border-bottom: 1px solid var(--border); }
+.border-l        { border-left: 1px solid var(--border); }
+.border-r        { border-right: 1px solid var(--border); }
+.border-l-4      { border-left-width: 4px; border-left-style: solid; }
+.border-t-2      { border-top-width: 2px; border-top-style: solid; }
+
+.border-solid   { border-style: solid; }
+.border-dashed  { border-style: dashed; }
+
+/* Border colors */
+.border-white\/5  { border-color: rgba(255,255,255,0.05); }
+.border-white\/10 { border-color: rgba(255,255,255,0.10); }
+.border-white\/20 { border-color: rgba(255,255,255,0.20); }
+.border-primary   { border-color: var(--primary); }
+.border-secondary { border-color: var(--secondary); }
+.border-success   { border-color: var(--success); }
+.border-danger    { border-color: var(--danger); }
+
+/* Border radius */
+.rounded        { border-radius: 0.25rem; }
+.rounded-md     { border-radius: 0.375rem; }
+.rounded-lg     { border-radius: 0.5rem; }
+.rounded-xl     { border-radius: 0.75rem; }
+.rounded-2xl    { border-radius: 1rem; }
+.rounded-3xl    { border-radius: 1.5rem; }
+.rounded-full   { border-radius: 9999px; }
+
+/* ============================================================
+   11. POSITION & Z-INDEX UTILITIES
+   ============================================================ */
+
+.static   { position: static; }
+.relative { position: relative; }
+.absolute { position: absolute; }
+.fixed    { position: fixed; }
+.sticky   { position: sticky; }
+
+.inset-0  { inset: 0; }
+.top-0    { top: 0; }
+.top-3\.5 { top: 0.875rem; }
+.top-20   { top: 5rem; }
+.bottom-0 { bottom: 0; }
+.bottom-10 { bottom: 2.5rem; }
+.bottom-20 { bottom: 5rem; }
+.left-0   { left: 0; }
+.left-10  { left: 2.5rem; }
+.left-20  { left: 5rem; }
+.right-0  { right: 0; }
+.right-3  { right: 0.75rem; }
+.right-10 { right: 2.5rem; }
+.right-20 { right: 5rem; }
+
+.-bottom-6 { bottom: -1.5rem; }
+.-translate-x-1\/2 { transform: translateX(-50%); }
+.left-1\/2 { left: 50%; }
+
+.z-0   { z-index: 0; }
+.z-10  { z-index: 10; }
+.z-20  { z-index: 20; }
+.z-50  { z-index: 50; }
+
+/* ============================================================
+   12. OVERFLOW & VISIBILITY
+   ============================================================ */
+
+.overflow-hidden  { overflow: hidden; }
+.overflow-auto    { overflow: auto; }
+.overflow-y-auto  { overflow-y: auto; }
+.overflow-x-hidden { overflow-x: hidden; }
+
+.pointer-events-none { pointer-events: none; }
+.cursor-pointer { cursor: pointer; }
+.cursor-default { cursor: default; }
+.cursor-not-allowed { cursor: not-allowed; }
+.cursor-help    { cursor: help; }
+.select-none    { user-select: none; }
+
+/* ============================================================
+   13. GRID — QUANTUM GRID SYSTEM
+   ============================================================ */
+
+.quantum-grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 1.5rem;
+  width: 100%;
+}
+
+/* Grid columns */
+.col-span-1  { grid-column: span 1 / span 1; }
+.col-span-2  { grid-column: span 2 / span 2; }
+.col-span-3  { grid-column: span 3 / span 3; }
+.col-span-4  { grid-column: span 4 / span 4; }
+.col-span-5  { grid-column: span 5 / span 5; }
+.col-span-6  { grid-column: span 6 / span 6; }
+.col-span-7  { grid-column: span 7 / span 7; }
+.col-span-8  { grid-column: span 8 / span 8; }
+.col-span-9  { grid-column: span 9 / span 9; }
+.col-span-10 { grid-column: span 10 / span 10; }
+.col-span-11 { grid-column: span 11 / span 11; }
+.col-span-12 { grid-column: span 12 / span 12; }
+
+/* Grid auto columns */
+.grid-cols-1 { grid-template-columns: repeat(1,minmax(0,1fr)); }
+.grid-cols-2 { grid-template-columns: repeat(2,minmax(0,1fr)); }
+.grid-cols-3 { grid-template-columns: repeat(3,minmax(0,1fr)); }
+.grid-cols-4 { grid-template-columns: repeat(4,minmax(0,1fr)); }
+.grid-cols-6 { grid-template-columns: repeat(6,minmax(0,1fr)); }
+
+/* Responsive overrides (lg = 1024px+) */
+@media (max-width: 767px) {
+  .md\:col-span-6  { grid-column: span 12 / span 12; }
+  .md\:hidden      { display: none; }
+  .md\:block       { display: block; }
+  .md\:col-span-3  { grid-column: span 12 / span 12; }
+}
+@media (min-width: 768px) {
+  .md\:col-span-6  { grid-column: span 6 / span 6; }
+  .md\:col-span-3  { grid-column: span 3 / span 3; }
+  .md\:grid-cols-2 { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .md\:grid-cols-3 { grid-template-columns: repeat(3,minmax(0,1fr)); }
+  .md\:block       { display: block; }
+  .md\:hidden      { display: none; }
+}
+@media (min-width: 1024px) {
+  .lg\:col-span-3  { grid-column: span 3 / span 3; }
+  .lg\:col-span-4  { grid-column: span 4 / span 4; }
+  .lg\:col-span-6  { grid-column: span 6 / span 6; }
+  .lg\:col-span-8  { grid-column: span 8 / span 8; }
+  .lg\:col-span-2  { grid-column: span 2 / span 2; }
+  .lg\:grid-cols-2 { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .lg\:grid-cols-3 { grid-template-columns: repeat(3,minmax(0,1fr)); }
+  .lg\:grid-cols-6 { grid-template-columns: repeat(6,minmax(0,1fr)); }
+  .lg\:flex        { display: flex; }
+  .lg\:hidden      { display: none; }
+  .lg\:block       { display: block; }
+}
+
+/* View container — main app shell */
+.view-container {
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  flex-direction: row;
+  overflow: hidden;
+}
+
+/* ============================================================
+   14. COMPONENT CLASSES — GLASS PANELS & CARDS
+   ============================================================ */
+
+/* Primary panel — sidebar, login card, etc. */
+.glass-panel {
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.05);
+  border-radius: 16px;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.glass-panel:hover {
+  border-color: var(--border-hover);
+  box-shadow: 0 12px 48px rgba(0,0,0,0.7), 0 0 20px -8px var(--primary-glow), inset 0 1px 0 rgba(255,255,255,0.07);
+}
+
+/* Secondary card — dashboard tiles, threat cards, rule cards */
+.glass-card {
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+  border-radius: 16px;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
+}
+
+.glass-card:hover {
+  background: rgba(14, 20, 32, 0.8);
+  border-color: rgba(0, 242, 255, 0.15);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.6), 0 0 12px -4px var(--primary-glow);
+}
+
+/* Academic / HUD card — small info panels */
+.academic-card {
+  background: rgba(9, 13, 22, 0.85);
+  border: 1px solid rgba(0, 242, 255, 0.15);
+  border-radius: 10px;
+  padding: 12px 16px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4), 0 0 10px -5px var(--primary-glow);
+}
+
+/* ============================================================
+   15. GRADIENT TEXT
+   ============================================================ */
+
+.gradient-text {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  filter: drop-shadow(0 0 12px var(--primary-glow));
+}
+
+/* ============================================================
+   16. NEON EFFECTS
+   ============================================================ */
+
+.neon-text-blue   { text-shadow: 0 0 12px var(--neon-blue-glow), 0 0 24px var(--neon-blue-glow); }
+.neon-text-purple { text-shadow: 0 0 12px var(--neon-purple-glow), 0 0 24px var(--neon-purple-glow); }
+
+.neon-border {
+  border-color: var(--neon-blue) !important;
+  box-shadow: 0 0 10px var(--primary-glow), inset 0 0 10px rgba(0,242,255,0.05);
+}
+
+.shadow-inner { box-shadow: inset 0 2px 8px rgba(0,0,0,0.4); }
+
+/* ============================================================
+   17. BACKGROUND UTILITIES
+   ============================================================ */
+
+/* Cyber grid overlay */
+.cyber-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(0, 242, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 242, 255, 0.04) 1px, transparent 1px);
+  background-size: 48px 48px;
+  pointer-events: none;
+}
+
+.cyber-grid::after {
+  content: "";
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--primary), transparent);
+  opacity: 0.12;
+  filter: blur(1px);
+  animation: scanline 12s linear infinite;
+}
+
+/* Cover background image */
+.bg-cover   { background-size: cover; }
+.bg-center  { background-position: center; }
+
+/* Gradient overlays */
+.bg-gradient-to-b {
+  background-image: linear-gradient(to bottom, var(--bg-dark), transparent, var(--bg-dark));
+}
+.bg-gradient-to-r {
+  background-image: linear-gradient(to right, var(--secondary), transparent);
+}
+.bg-gradient-to-br {
+  background-image: linear-gradient(to bottom right, var(--bg-panel), rgba(0,242,255,0.03));
+}
+
+/* ============================================================
+   18. FILTER / VISUAL EFFECTS
+   ============================================================ */
+
+.grayscale          { filter: grayscale(1); }
+.grayscale-0        { filter: grayscale(0); }
+.blur-3xl           { filter: blur(64px); }
+.drop-shadow-glow   { filter: drop-shadow(0 0 12px var(--primary-glow)); }
+
+.backdrop-blur-md {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* Perspective for 3D tilt */
+.perspective-1000 { perspective: 1000px; }
+
+/* ============================================================
+   19. HOVER INTERACTIONS
+   ============================================================ */
+
+.hover-tilt {
+  transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275),
+              box-shadow 0.4s ease;
+}
+.hover-tilt:hover {
+  transform: translateY(-3px) scale(1.01);
+  box-shadow: 0 20px 48px -10px rgba(0,0,0,0.7), 0 0 20px -8px var(--primary-glow);
+  z-index: 10;
+}
+
+/* Scale on hover/active */
+.hover\:scale-105:hover { transform: scale(1.05); }
+.active\:scale-95:active { transform: scale(0.95); }
+.group-hover\:scale-110 { transition: transform 0.3s ease; }
+.group:hover .group-hover\:scale-110 { transform: scale(1.10); }
+
+/* Color transitions */
+.transition-all      { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+.transition-colors   { transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease; }
+.transition-opacity  { transition: opacity 0.3s ease; }
+.transition-transform { transition: transform 0.3s ease; }
+
+/* Duration modifiers */
+.duration-300  { transition-duration: 300ms; }
+.duration-500  { transition-duration: 500ms; }
+.duration-700  { transition-duration: 700ms; }
+.duration-1000 { transition-duration: 1000ms; }
+
+/* ============================================================
+   20. TRANSFORM UTILITIES
+   ============================================================ */
+
+.scale-90    { transform: scale(0.9); }
+.scale-100   { transform: scale(1.0); }
+.scale-110   { transform: scale(1.1); }
+.rotate-12   { transform: rotate(12deg); }
+.-rotate-90  { transform: rotate(-90deg); }
+.skew-x-12   { transform: skewX(12deg); }
+
+.translate-x-\[-100\%\]  { transform: translateX(-100%); }
+.translate-x-\[100\%\]   { transform: translateX(100%); }
+.-translate-x-1\/2         { transform: translateX(-50%); }
+
+/* ============================================================
+   21. SPACE UTILITIES (space-y, space-x)
+   ============================================================ */
+
+.space-y-2 > * + * { margin-top: 0.5rem; }
+.space-y-4 > * + * { margin-top: 1rem; }
+.space-y-6 > * + * { margin-top: 1.5rem; }
+.space-y-8 > * + * { margin-top: 2rem; }
+
+/* ============================================================
+   22. MAX-WIDTH UTILITIES
+   ============================================================ */
+
+.max-w-sm   { max-width: 24rem; }
+.max-w-md   { max-width: 28rem; }
+.max-w-lg   { max-width: 32rem; }
+.max-w-xl   { max-width: 36rem; }
+.max-w-2xl  { max-width: 42rem; }
+.max-w-3xl  { max-width: 48rem; }
+.max-w-4xl  { max-width: 56rem; }
+.max-w-5xl  { max-width: 64rem; }
+.max-w-\[220px\] { max-width: 220px; }
+.max-w-\[2xl\]   { max-width: 42rem; }
+.max-w-\[85\%\] { max-width: 85%; }
+.max-w-\[80\%\] { max-width: 80%; }
+.max-w-\[4xl\]   { max-width: 56rem; }
+
+/* ============================================================
+   23. SPECIAL COMPONENT VARIANTS
+   ============================================================ */
+
+/* Academic branding section */
+.academic-branding {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* KL University tag badge */
+.kl-tag {
+  background: rgba(0, 242, 255, 0.10);
+  color: var(--primary);
+  padding: 3px 14px;
+  border-radius: 99px;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  border: 1px solid rgba(0, 242, 255, 0.25);
+  box-shadow: 0 0 16px rgba(0, 242, 255, 0.1);
+  width: fit-content;
+}
+
+/* Staggered animation delays */
+.stagger-1 { animation-delay: 0.08s; animation-fill-mode: both; }
+.stagger-2 { animation-delay: 0.16s; animation-fill-mode: both; }
+.stagger-3 { animation-delay: 0.24s; animation-fill-mode: both; }
+.stagger-4 { animation-delay: 0.32s; animation-fill-mode: both; }
+
+/* "active" pill / badge for various status indicators */
+.pill-active {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 99px;
+  font-size: 9px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+}
+
+/* ============================================================
+   24. INLINE STYLE OVERRIDES — FIT CONTENT
+   ============================================================ */
+
+.w-fit   { width: fit-content; }
+.h-fit   { height: fit-content; }
+.object-cover { object-fit: cover; }
+
+/* ============================================================
+   25. ANIMATIONS — KEYFRAMES
+   ============================================================ */
+
+/* --- Fade in --- */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.animate-fade-in {
+  animation: fade-in 0.8s ease forwards;
+}
+
+/* --- Slide up --- */
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(28px); filter: blur(6px); }
+  to   { opacity: 1; transform: translateY(0);    filter: blur(0); }
+}
+.animate-slide-up {
+  animation: slide-up 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* --- Scanline (vertical sweep) --- */
+@keyframes scanline {
+  0%   { transform: translateY(-100%); }
+  100% { transform: translateY(100vh); }
+}
+.animate-scanline {
+  animation: scanline 8s linear infinite;
+}
+
+/* --- Progress bar (horizontal fill, used in boot screen) --- */
+@keyframes progress-fill {
+  from { width: 0%; }
+  to   { width: 100%; }
+}
+.animate-progress {
+  animation: progress-fill 2.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* --- Pulse --- */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* --- Bounce (for loading dots) --- */
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-4px); }
+}
+.animate-bounce {
+  animation: bounce 1s infinite;
+}
+
+/* --- Holographic flicker --- */
+@keyframes holographic-flicker {
+  0%   { opacity: 0.95; filter: contrast(105%); }
+  5%   { opacity: 0.75;  filter: contrast(140%); }
+  10%  { opacity: 0.95; }
+  15%  { opacity: 0.85;  filter: hue-rotate(4deg); }
+  20%  { opacity: 1; }
+  100% { opacity: 0.95; }
+}
+.animate-hologram {
+  animation: holographic-flicker 6s infinite;
+}
+
+/* --- Float (for shield/logo) --- */
+@keyframes float {
+  0%, 100% { transform: translateY(0px);  }
+  50%       { transform: translateY(-14px); }
+}
+.animate-float {
+  animation: float 5s ease-in-out infinite;
+}
+
+/* --- Ken Burns (subtle zoom on background images) --- */
+@keyframes ken-burns {
+  from { transform: scale(1);    }
+  to   { transform: scale(1.08); }
+}
+.animate-ken-burns {
+  animation: ken-burns 20s ease-in-out alternate infinite;
+}
+
+/* --- Spin (standard, for loading) --- */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* --- Slow spin (biometric ring) --- */
+.animate-spin-slow {
+  animation: spin 3s linear infinite;
+}
+
+/* --- Neural pulse (used on hero elements) --- */
+@keyframes neural-pulse {
+  0%  { transform: scale(1);    opacity: 0.8; }
+  50% { transform: scale(1.04); opacity: 1;   filter: brightness(1.15); }
+  100%{ transform: scale(1);    opacity: 0.8; }
+}
+.animate-neural {
+  animation: neural-pulse 3s ease-in-out infinite;
+}
+
+/* --- Glitch text --- */
+@keyframes glitch {
+  0%   { transform: translate(0); clip-path: none; }
+  15%  { transform: translate(-2px, 1px); clip-path: polygon(0 20%, 100% 20%, 100% 30%, 0 30%); }
+  30%  { transform: translate(2px, -1px); clip-path: polygon(0 60%, 100% 60%, 100% 70%, 0 70%); }
+  45%  { transform: translate(-1px, 2px); clip-path: polygon(0 40%, 100% 40%, 100% 50%, 0 50%); }
+  60%  { transform: translate(1px, -2px); }
+  75%  { transform: translate(0); }
+  100% { transform: translate(0); clip-path: none; }
+}
+.glitch-text {
+  position: relative;
+  animation: glitch 4s infinite;
+}
+
+/* --- Staggered spin for orbital rings (landing page) --- */
+@keyframes spin-cw  { from { transform: rotate(0deg);   } to { transform: rotate(360deg);  } }
+@keyframes spin-ccw { from { transform: rotate(0deg);   } to { transform: rotate(-360deg); } }
+
+/* ============================================================
+   26. INPUT STYLES
+   ============================================================ */
+
+input[type="text"],
+input[type="email"],
+input[type="password"],
+textarea {
+  background: rgba(0,0,0,0.25);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text-main);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  padding: 10px 14px;
+  outline: none;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+  width: 100%;
+}
+
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="password"]:focus,
+textarea:focus {
+  border-color: rgba(0, 242, 255, 0.4);
+  box-shadow: 0 0 0 3px rgba(0, 242, 255, 0.08);
+}
+
+input::placeholder { color: var(--text-dim); opacity: 0.6; }
+
+/* Class form of focus (used inline in JSX) */
+.focus\:border-primary\/50:focus { border-color: rgba(0,242,255,0.5); }
+.focus\:outline-none:focus        { outline: none; }
+
+/* ============================================================
+   27. BUTTON BASE STYLES
+   ============================================================ */
+
+button {
+  cursor: pointer;
+  font-family: var(--font-sans);
+  border: none;
+  background: none;
+  outline: none;
+}
+
+button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ============================================================
+   28. GROUP HOVER UTILITY
+   ============================================================ */
+
+/* The "group" class on a parent and "group-hover:*" on children */
+.group { }
+
+.group:hover .group-hover\:opacity-100 { opacity: 1 !important; }
+.group:hover .group-hover\:bg-primary\/10 { background-color: rgba(0,242,255,0.10); }
+.group:hover .group-hover\:bg-white\/10   { background-color: rgba(255,255,255,0.10); }
+.group:hover .group-hover\:text-white      { color: #ffffff; }
+.group:hover .group-hover\:text-primary    { color: var(--primary); }
+.group:hover .group-hover\:border-primary\/50 { border-color: rgba(0,242,255,0.5); }
+.group:hover .group-hover\:neon-border     { border-color: var(--neon-blue); box-shadow: 0 0 10px var(--primary-glow); }
+.group:hover .group-hover\:neon-text-blue  { text-shadow: 0 0 12px var(--neon-blue-glow); }
+.group:hover .group-hover\:neon-text-purple{ text-shadow: 0 0 12px var(--neon-purple-glow); }
+.group:hover .group-hover\:rotate-12        { transform: rotate(12deg); }
+.group:hover .group-hover\:translate-x-0   { transform: translateX(0); }
+
+/* ============================================================
+   29. OBJECT FIT, COVER
+   ============================================================ */
+
+.hidden { display: none; }
+
+/* Responsive md:block, md:hidden */
+@media (min-width: 768px) {
+  .md\:block  { display: block; }
+}
+
+/* ============================================================
+   30. SHADOW UTILITIES
+   ============================================================ */
+
+.shadow-sm   { box-shadow: 0 1px 2px rgba(0,0,0,0.3); }
+.shadow      { box-shadow: 0 2px 8px rgba(0,0,0,0.5); }
+.shadow-lg   { box-shadow: 0 8px 24px rgba(0,0,0,0.6); }
+.shadow-xl   { box-shadow: 0 16px 40px rgba(0,0,0,0.7); }
+.shadow-2xl  { box-shadow: 0 24px 60px rgba(0,0,0,0.8); }
+
+/* ============================================================
+   31. REPORTING PAGE COMPONENT STYLES
+   ============================================================ */
+
+.report-card {
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  background: rgba(12, 17, 28, 0.65);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.report-card:hover {
+  border-color: rgba(0, 242, 255, 0.15);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 16px -8px var(--primary-glow);
+}
+
+.report-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.report-btn {
+  margin-top: auto;
+  padding: 12px 20px;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid transparent;
+  transition: all 0.25s ease;
+  cursor: pointer;
+}
+
+.report-btn-primary {
+  background: rgba(0,242,255,0.12);
+  color: var(--primary);
+  border-color: rgba(0,242,255,0.25);
+}
+
+.report-btn-primary:hover:not(:disabled) {
+  background: rgba(0,242,255,0.22);
+  box-shadow: 0 0 16px rgba(0,242,255,0.15);
+}
+
+.report-btn-disabled {
+  background: rgba(255,255,255,0.04);
+  color: var(--text-dim);
+  border-color: var(--border);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.report-history-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: rgba(255,255,255,0.025);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.report-history-row:hover {
+  background: rgba(0,242,255,0.04);
+  border-color: rgba(0,242,255,0.12);
+}
+
+/* ============================================================
+   32. SETTINGS PAGE COMPONENT STYLES
+   ============================================================ */
+
+.settings-row {
+  background: rgba(12, 17, 28, 0.7);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px 22px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.settings-row:hover {
+  border-color: rgba(0,242,255,0.12);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+}
+
+.settings-badge {
+  padding: 5px 16px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.settings-mode-btn {
+  flex: 1;
+  padding: 14px 10px;
+  border-radius: 12px;
+  text-align: center;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.03);
+  color: var(--text-dim);
+  transition: all 0.25s ease;
+  font-family: var(--font-sans);
+}
+
+.settings-mode-btn:hover {
+  background: rgba(255,255,255,0.06);
+  color: var(--text-main);
+}
+
+.settings-mode-btn.active {
+  background: rgba(0, 255, 149, 0.10);
+  border-color: rgba(0, 255, 149, 0.35);
+  color: var(--success);
+  font-weight: 700;
+  box-shadow: 0 0 16px rgba(0,255,149,0.08);
+}
+
+/* ============================================================
+   33. SIDEBAR LAYOUT
+   ============================================================ */
+
+aside {
+  flex-shrink: 0;
+}
+
+/* ============================================================
+   34. MAIN SCROLL AREA
+   ============================================================ */
+
+main {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* ============================================================
+   35. MISCELLANEOUS UTILITIES
+   ============================================================ */
+
+.block { display: block; }
+.space-x-4 > * + * { margin-left: 1rem; }
+.list-none { list-style: none; }
+.whitespace-nowrap { white-space: nowrap; }
+
+/* Aspect ratio placeholder */
+.aspect-square { aspect-ratio: 1/1; }
+
+/* Text decoration */
+.underline { text-decoration: underline; }
+.no-underline { text-decoration: none; }
+
+/* Placeholder color for inputs */
+.placeholder\:text-dim::placeholder { color: var(--text-dim); opacity: 0.6; }
