@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Download, FileText, ShieldCheck, Mail, Calendar, Clock, CheckCircle2, Lock, BarChart2, Bell, Zap, ChevronRight } from "lucide-react";
+import API_BASE from "../config";
 
 export default function Reporting() {
   const [loading, setLoading]   = useState(false);
@@ -10,7 +11,7 @@ export default function Reporting() {
   const handleDownload = async () => {
     setLoading(true);
     try {
-      window.location.href = "http://localhost:4000/api/report/download";
+      window.location.href = `${API_BASE}/report/download`;
     } catch (e) {
       console.error(e);
     } finally {

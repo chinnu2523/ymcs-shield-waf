@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { rnd, rndIP, ts, ATTACK_POOL } from "../utils/helpers";
 
-const API_BASE = "http://localhost:4000/api";
+import API_BASE from "../config";
 
 export default function useSimulator() {
   const [running, setRunning]   = useState(false);
