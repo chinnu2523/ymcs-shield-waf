@@ -1,7 +1,7 @@
 import React from "react";
 import { Activity, Shield, AlertCircle, Cpu, Globe, Lock, Search, Heart, Zap, Terminal } from "lucide-react";
 
-export default function Dashboard({ counters, threats, logs }) {
+export default function Dashboard({ rules = [], counters, threats, logs }) {
   const displayLogs = (logs && Array.isArray(logs)) ? logs.map((l, i) => ({
     id: l._id || `L-${i}`,
     time: l.timestamp ? new Date(l.timestamp).toLocaleTimeString() : "Pending...",
@@ -17,13 +17,27 @@ export default function Dashboard({ counters, threats, logs }) {
     { label: "Active Threats",     value: threats?.length || 0,   unit: "LIVE",    icon: <AlertCircle size={18} />, color: "var(--secondary)" },
   ];
 
+  const getLayerStatus = (id) => {
+    const ruleMapping = {
+      "SQL-INJ": "RL-101",
+      "XSS-SHD": "RL-102",
+      "RAT-LIM": "RL-205",
+      "BOT-DET": "RL-412",
+      "DDO-GRD": "RL-205", // Volumetric DDoS matches Rate Limiting Core
+      "PTH-GRD": "RL-880"
+    };
+    const ruleId = ruleMapping[id];
+    const rule = rules.find(r => r.id === ruleId);
+    return rule?.enabled ? { status: "Active", health: 100 } : { status: "Standby", health: 0 };
+  };
+
   const layers = [
-    { id: "SQL-INJ", name: "SQL Injection Filter", status: "Active",  icon: <Lock size={14} />,  health: 100 },
-    { id: "XSS-SHD", name: "XSS Shield Layer",     status: "Active",  icon: <Search size={14} />, health: 100 },
-    { id: "RAT-LIM", name: "Dynamic Rate Limiter", status: "Active",  icon: <Activity size={14} />, health: 98 },
-    { id: "BOT-DET", name: "Neural Bot Detector",  status: "Active",  icon: <Cpu size={14} />,    health: 95 },
-    { id: "DDO-GRD", name: "Volumetric DDoS Guard", status: "Standby", icon: <Shield size={14} />,  health: 0 },
-    { id: "PTH-GRD", name: "Path Traversal Filter",status: "Active",  icon: <Terminal size={14} />, health: 100 },
+    { id: "SQL-INJ", name: "SQL Injection Filter", ...getLayerStatus("SQL-INJ"),  icon: <Lock size={14} /> },
+    { id: "XSS-SHD", name: "XSS Shield Layer",     ...getLayerStatus("XSS-SHD"),  icon: <Search size={14} /> },
+    { id: "RAT-LIM", name: "Dynamic Rate Limiter", ...getLayerStatus("RAT-LIM"),  icon: <Activity size={14} /> },
+    { id: "BOT-DET", name: "Neural Bot Detector",  ...getLayerStatus("BOT-DET"),  icon: <Cpu size={14} /> },
+    { id: "DDO-GRD", name: "Volumetric DDoS Guard", ...getLayerStatus("DDO-GRD"), icon: <Shield size={14} /> },
+    { id: "PTH-GRD", name: "Path Traversal Filter", ...getLayerStatus("PTH-GRD"), status: "Active", icon: <Terminal size={14} />, health: 100 },
   ];
 
   return (
