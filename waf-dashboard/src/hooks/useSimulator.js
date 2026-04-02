@@ -4,7 +4,7 @@ import { rnd, rndIP, ts, ATTACK_POOL } from "../utils/helpers";
 import API_BASE from "../config";
 
 export default function useSimulator() {
-  const [running, setRunning]   = useState(false);
+  const [running, setRunning]   = useState(true);
   const [threats, setThreats]   = useState([]);
   const [logs, setLogs]         = useState([]);
   const [counters, setCounters] = useState({ total: 0, blocked: 0, allowed: 0, latency: 0 });
@@ -39,6 +39,7 @@ export default function useSimulator() {
             id: l._id,
             time: new Date(l.timestamp).toLocaleTimeString(),
             ip: l.ip,
+            path: l.path || "/api/stats",
             type: l.attackType,
             severity: l.riskScore > 80 ? "critical" : "high",
             payload: l.payload

@@ -109,7 +109,7 @@ export default function Threats({ threats, setActiveView }) {
                     <div className="w-1 h-10 rounded-full" style={{ background: color, boxShadow: `0 0 10px ${color}` }} />
                     
                     <div className="flex flex-col min-w-[80px]">
-                      <span className="text-[10px] font-black text-dim uppercase tracking-widest opacity-50 mb-1">EV-{Math.floor(Math.random() * 9000 + 1000)}</span>
+                      <span className="text-[10px] font-black text-dim uppercase tracking-widest opacity-50 mb-1">ID-{t.id ? t.id.slice(-6).toUpperCase() : "PENDING"}</span>
                       <span className="text-sm font-black text-white tracking-wide">{t.type}</span>
                     </div>
 
@@ -127,7 +127,7 @@ export default function Threats({ threats, setActiveView }) {
 
                     <div className="flex flex-col flex-1 max-w-[200px]">
                        <span className="text-[10px] font-black text-dim uppercase tracking-widest mb-1">Target Endpoint</span>
-                       <span className="text-xs font-mono text-dim group-hover:text-primary transition-colors truncate">/api/v1/auth</span>
+                       <span className="text-xs font-mono text-dim group-hover:text-primary transition-colors truncate">{t.path}</span>
                     </div>
 
                     <div className="flex items-center gap-4">
