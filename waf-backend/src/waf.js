@@ -18,7 +18,12 @@ const stats = {
 
 async function wafMiddleware(req, res, next) {
   stats.total++;
-  const ip = req.headers['x-forwarded-for'] || req.ip || req.connection.remoteAddress;
+  let ip = req.headers['x-forwarded-for'] || req.ip || req.connection.remoteAddress;
+  // If IP is a list (from proxies like Render/Cloudflare), take the first one
+  if (ip && typeof ip === "string" && ip.includes(",")) {
+    ip = ip.split(",")[0].trim();
+  }
+
 
   // Fetch dynamic rules from memory/DB
   const rules = await getRules();
@@ -29,7 +34,7 @@ async function wafMiddleware(req, res, next) {
     const rateResult = rateLimit.check(ip);
     if (rateResult.limited) {
       stats.blocked++;
-      saveToDB(req, { ...rateResult, riskScore: 100 });
+      saveToDB(req, ip, { ...rateResult, riskScore: 100 });
       return res.status(429).json({ error: "Rate limit exceeded" });
     }
   }
@@ -47,7 +52,7 @@ async function wafMiddleware(req, res, next) {
       const result = detector.fn(req);
       if (result.detected) {
         stats.blocked++;
-        saveToDB(req, { ...result, riskScore: 100 });
+        saveToDB(req, ip, { ...result, riskScore: 100 });
         return res.status(403).json({ error: "Forbidden", message: result.message || `${detector.type} detected` });
       }
     }
@@ -60,7 +65,7 @@ async function wafMiddleware(req, res, next) {
       const aiResult = await aiGuardian.analyzeRequest(req);
       if (aiResult.detected && aiResult.riskScore > 80) {
         stats.blocked++;
-        saveToDB(req, { ...aiResult, source: "AI Guardian" });
+        saveToDB(req, ip, { ...aiResult, source: "AI Guardian" });
         return res.status(403).json({ 
           error: "AI Blocked", 
           message: aiResult.explanation,
@@ -68,21 +73,21 @@ async function wafMiddleware(req, res, next) {
         });
       }
       if (aiResult.riskScore > 20) {
-        saveToDB(req, { ...aiResult, status: "ALLOWED" });
+        saveToDB(req, ip, { ...aiResult, status: "ALLOWED" });
       }
     }
   }
 
   // All checks passed — allow request
   stats.allowed++;
-  saveToDB(req, { status: "ALLOWED" }, false);
+  saveToDB(req, ip, { status: "ALLOWED" }, false);
   next();
 }
 
-async function saveToDB(req, result, isBlocked = true) {
+async function saveToDB(req, ip, result, isBlocked = true) {
   try {
     const logData = {
-      ip:         req.headers['x-forwarded-for'] || req.ip || req.connection.remoteAddress,
+      ip:         ip, // Use the extracted IP from the middleware context
       method:     req.method,
       path:       req.path,
       status:     isBlocked ? "BLOCKED" : "ALLOWED",
