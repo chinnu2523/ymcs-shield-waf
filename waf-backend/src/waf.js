@@ -14,9 +14,11 @@ const stats = {
   total:   0,
   blocked: 0,
   allowed: 0,
+  latency: 0, // In Milliseconds
 };
 
 async function wafMiddleware(req, res, next) {
+  const start = process.hrtime();
   stats.total++;
   let ip = req.headers['x-forwarded-for'] || req.ip || req.connection.remoteAddress;
   // If IP is a list (from proxies like Render/Cloudflare), take the first one
@@ -81,6 +83,20 @@ async function wafMiddleware(req, res, next) {
   // All checks passed — allow request
   stats.allowed++;
   saveToDB(req, ip, { status: "ALLOWED" }, false);
+  // Calculate and Update Latency on response finish
+  res.on("finish", () => {
+    const diff = process.hrtime(start);
+    const durationMs = (diff[0] * 1e3 + diff[1] * 1e-6);
+    
+    // Exponential Moving Average (EMA) for smooth dashboard values
+    // stats.latency = (current_average * 0.9) + (new_duration * 0.1)
+    if (stats.latency === 0) {
+      stats.latency = Math.round(durationMs);
+    } else {
+      stats.latency = Math.round((stats.latency * 0.9) + (durationMs * 0.1));
+    }
+  });
+
   next();
 }
 
