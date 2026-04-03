@@ -49,6 +49,7 @@ export default function useSimulator() {
         }
       }
 
+      const rRes = await fetch(`${API_BASE}/rules`);
       if (rRes.ok) {
         const rData = await rRes.json();
         if (Array.isArray(rData)) setRules(rData);

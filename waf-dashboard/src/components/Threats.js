@@ -1,5 +1,5 @@
 import React from "react";
-import { AlertCircle, ShieldAlert, Globe, Clock, Filter, Search, ChevronRight, ShieldCheck, Activity, Target, Play } from "lucide-react";
+import { AlertCircle, ShieldAlert, Globe, Clock, Filter, Search, ChevronRight, ShieldCheck, Activity, Target, Play, Lock, Shield } from "lucide-react";
 
 export default function Threats({ threats, setActiveView }) {
   const [showMenu, setShowMenu] = React.useState(false);

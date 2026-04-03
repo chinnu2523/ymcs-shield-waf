@@ -25,7 +25,7 @@ export default function App() {
   const [viewState, setViewState] = useState(VIEW_STATES.LANDING);
   const [activeView, setActiveView] = useState("dashboard"); // Sidebar uses lowercase IDs
   const {
-    running, setRunning,
+    running, setRunning, status,
     threats, setThreats,
     logs, counters, history,
     rules, setRules,
