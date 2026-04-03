@@ -12,6 +12,7 @@
 
 const mongoose = require("mongoose");
 const os       = require("os");
+const https    = require("https"); // Added to keep Render live server awake
 
 // ── Health State (single source of truth) ─────────────────────────────────
 const healthState = {
@@ -116,6 +117,18 @@ async function checkDatabase() {
   }
 }
 
+// ── Live Keep-Alive (Prevent Render Sleep) ───────────────────────────────
+function pingLiveServer() {
+  const url = "https://ymcs-shield-backend.onrender.com/health";
+  https.get(url, (res) => {
+    if (res.statusCode === 200) {
+      // Server is kept awake
+    }
+  }).on('error', (e) => {
+    // Ignore ping errors
+  });
+}
+
 // ── System Metrics ───────────────────────────────────────────────────────
 function checkSystemMetrics() {
   const loadAvg = os.loadavg()[0]; // 1-minute load average
@@ -128,7 +141,7 @@ function checkSystemMetrics() {
   healthState.system.memTotalMB = Math.round(memTotal / 1024 / 1024);
   healthState.backend.uptime   = Math.floor((Date.now() - healthState.backend.startedAt) / 1000);
 
-  // HIGH MEMORY AUTO-ALERT
+  // High Memory
   const memPct = (memUsed / memTotal) * 100;
   if (memPct > 85) {
     logAdaptation(
@@ -238,6 +251,9 @@ async function runHealthCheck() {
     await checkDatabase();
     checkSystemMetrics();
     runAdaptiveAnalysis();
+    
+    // Ping to prevent sleep on live host
+    pingLiveServer();
 
     // Ensure backend status reflects process health
     const memPct = (healthState.system.memUsedMB / healthState.system.memTotalMB) * 100;
