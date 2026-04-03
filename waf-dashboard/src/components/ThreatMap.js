@@ -40,14 +40,16 @@ export default function ThreatMap({ threats }) {
       </div>
 
       <div className="relative w-full aspect-[1.8/1] bg-primary/5 rounded-2xl border border-white/5 overflow-hidden shadow-inner flex items-center justify-center">
-        {/* Simple SVG World Outline (Simplified representation) */}
-        <svg viewBox="0 0 400 200" className="w-[90%] h-[90%] opacity-40">
-          <path 
-            d="M50 40 Q80 20 120 40 Q150 60 180 50 Q220 30 260 50 Q300 70 350 60 Q380 40 370 100 Q350 140 300 130 Q250 120 200 140 Q150 160 100 130 Q50 100 30 70 Z" 
-            fill="none" stroke="var(--primary)" strokeWidth="1" strokeDasharray="4 4"
-            className="animate-pulse"
-          />
-        </svg>
+        {/* Authentic SVG World Map Background */}
+        <div 
+          className="absolute inset-0 opacity-20 pointer-events-none" 
+          style={{ 
+            backgroundImage: "url('https://upload.wikimedia.org/wikipedia/commons/e/ec/World_map_blank_without_borders.svg')",
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            filter: "invert(1) sepia(1) hue-rotate(180deg) saturate(5) brightness(0.8)"
+          }}
+        />
 
         {/* Global Markers */}
         {activeMarkers.map((t, idx) => {

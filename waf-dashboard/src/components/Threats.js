@@ -1,8 +1,28 @@
-import React from "react";
-import { AlertCircle, ShieldAlert, Globe, Clock, Filter, Search, ChevronRight, ShieldCheck, Activity, Target, Play, Lock, Shield } from "lucide-react";
+import React, { useState } from "react";
+import { AlertCircle, ShieldAlert, Globe, Clock, Filter, Search, ChevronRight, ShieldCheck, Activity, Target, Play, Lock, Shield, Ban } from "lucide-react";
+import API_BASE from "../config";
 
 export default function Threats({ threats, setActiveView }) {
-  const [showMenu, setShowMenu] = React.useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const [severityFilter, setSeverityFilter] = useState("ALL");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [blocking, setBlocking] = useState(null);
+
+  const blockIP = async (ip) => {
+    setBlocking(ip);
+    try {
+      await fetch(`${API_BASE}/blocklist`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ip, reason: "Manual block from Threats dashboard" })
+      });
+      alert(`IP ${ip} successfully blocked!`);
+    } catch (e) {
+      alert("Failed to block IP");
+    } finally {
+      setBlocking(null);
+    }
+  };
 
   const launchAttack = async (type) => {
     setShowMenu(false);
@@ -31,8 +51,18 @@ export default function Threats({ threats, setActiveView }) {
     try { fetch(url, options); } catch (e) {}
   };
 
-  // Use real threats from props, fallback to empty array
-  const displayThreats = (threats && threats.length > 0) ? threats.slice(0, 10) : [];
+  // Use real threats from props, apply filters
+  const displayThreats = (threats && threats.length > 0) ? threats.filter(t => {
+    const matchesSearch = searchTerm === "" || 
+      (t.ip && t.ip.includes(searchTerm)) || 
+      (t.type && t.type.toLowerCase().includes(searchTerm.toLowerCase()));
+    
+    // Default severity missing? Let's just assign high to everything for demo if not present
+    const tSeverity = t.severity || "HIGH";
+    const matchesSeverity = severityFilter === "ALL" || tSeverity.toUpperCase() === severityFilter;
+    
+    return matchesSearch && matchesSeverity;
+  }).slice(0, 15) : [];
 
   return (
     <div className="flex flex-col gap-8 animate-slide-up stagger-1">
@@ -102,12 +132,27 @@ export default function Threats({ threats, setActiveView }) {
             gap: 12
           }}>
             <Filter size={14} className="text-dim" />
-            <span style={{ fontSize: 10, fontWeight: 900, color: "var(--text-dim)", textTransform: "uppercase", letterSpacing: "0.15em" }}>Filter Severity: <span className="text-white">ALL</span></span>
+            <select
+              value={severityFilter}
+              onChange={(e) => setSeverityFilter(e.target.value)}
+              className="bg-transparent border-none outline-none text-[10px] font-black text-white uppercase tracking-widest cursor-pointer"
+            >
+              <option value="ALL">Severity: ALL</option>
+              <option value="CRITICAL">Severity: CRITICAL</option>
+              <option value="HIGH">Severity: HIGH</option>
+              <option value="MEDIUM">Severity: MEDIUM</option>
+            </select>
           </div>
-          <button className="glass-panel px-6 py-2 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-primary border-primary/20 hover:border-primary/50 transition-all">
-            <Search size={14} />
-            Search Database
-          </button>
+          <div className="glass-panel px-4 py-2 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-dim border-primary/20 transition-all focus-within:border-primary/50">
+            <Search size={14} className="text-primary" />
+            <input 
+              type="text"
+              placeholder="Search IP or Type..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="bg-transparent border-none outline-none text-[10px] text-white placeholder:text-dim/50 uppercase tracking-widest w-40"
+            />
+          </div>
         </div>
       </div>
 
@@ -203,6 +248,14 @@ export default function Threats({ threats, setActiveView }) {
 
                   <div className="flex items-center gap-6 pl-10">
                     <span className="text-[10px] font-mono font-bold text-dim">{t.time}</span>
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); blockIP(t.ip); }}
+                      disabled={blocking === t.ip}
+                      className="px-4 py-2 rounded-lg border border-danger/30 text-danger text-[9px] font-black uppercase tracking-widest hover:bg-danger/10 transition-colors flex items-center gap-2"
+                    >
+                       {blocking === t.ip ? <Clock size={12} className="animate-spin" /> : <Ban size={12} />}
+                       BLOCK IP
+                    </button>
                     <div className="w-8 h-8 rounded-full border border-white/10 flex items-center justify-center group-hover:border-primary/50 group-hover:bg-primary/5 transition-all text-dim group-hover:text-primary">
                        <ChevronRight size={14} />
                     </div>

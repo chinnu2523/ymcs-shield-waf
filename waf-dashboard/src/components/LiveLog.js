@@ -2,8 +2,8 @@ import React from "react";
 import { Terminal, Shield, AlertTriangle, CheckCircle2, Cpu, Activity, Globe, Search, Filter, Trash2 } from "lucide-react";
 
 export default function LiveLog({ logs }) {
-  // Use real logs from props
-  // Use real logs from props (now objects)
+  const [searchTerm, setSearchTerm] = React.useState("");
+
   const displayLogs = (logs && logs.length > 0) ? logs.map((l, i) => ({
     id: l._id || `L-${i}`,
     time: new Date(l.timestamp).toLocaleTimeString(),
@@ -11,7 +11,11 @@ export default function LiveLog({ logs }) {
     type: l.attackType || "Safe Traffic",
     ip: l.ip || "127.0.0.1",
     isBlocked: l.status === "BLOCKED"
-  })) : [];
+  })).filter(log => 
+    log.ip.includes(searchTerm) || 
+    log.type.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    log.statusText.toLowerCase().includes(searchTerm.toLowerCase())
+  ) : [];
 
   return (
     <div className="flex flex-col h-full gap-8 animate-slide-up stagger-1 overflow-hidden">
@@ -49,7 +53,13 @@ export default function LiveLog({ logs }) {
              </div>
              <div className="flex items-center gap-2 px-3 py-1 bg-white/5 rounded border border-white/10">
                 <Search size={10} className="text-dim" />
-                <span className="text-[10px] font-mono font-bold text-dim uppercase tracking-widest">Grep Live Stream...</span>
+                <input 
+                  type="text"
+                  placeholder="Grep Live Stream..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="bg-transparent border-none outline-none text-[10px] font-mono font-bold text-dim uppercase tracking-widest placeholder:text-dim/50 w-48"
+                />
              </div>
           </div>
           <div className="flex items-center gap-4">

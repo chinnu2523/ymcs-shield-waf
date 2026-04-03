@@ -86,6 +86,14 @@ async function wafMiddleware(req, res, next) {
       return res.status(403).json({ error: "Forbidden", message: protoResult.message });
     }
 
+    // 1.5 Geo-Blocking Check
+    const geoResult = geoBlocking.scan(ip);
+    if (geoResult.detected) {
+      stats.blocked++;
+      saveToDB(req, ip, { type: "Geo-Blocking", explanation: geoResult.message, riskScore: 100, country: geoResult.country });
+      return res.status(403).json({ error: "Forbidden", message: geoResult.message });
+    }
+
     // 2. Rate limit check (RL-205)
     if (getRule("RL-205").enabled) {
       const rateResult = rateLimit.check(ip);
@@ -173,6 +181,12 @@ async function saveToDB(req, ip, result, isBlocked = true) {
     
     if (isBlocked && logData.riskScore > 90) {
       alerts.sendAlert({ ...logData, payload: logData.payload }).catch(() => {});
+    }
+    
+    if (isBlocked) {
+      logger.logBlocked(req, result);
+    } else {
+      logger.logAllowed(req);
     }
     
     // Performance: Use buffered logging to reduce DB pressure

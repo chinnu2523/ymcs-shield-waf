@@ -11,7 +11,18 @@ export default function Reporting() {
   const handleDownload = async () => {
     setLoading(true);
     try {
-      window.location.href = `${API_BASE}/report/download`;
+      // Must use fetch instead of window.location to inject JWT headers automatically
+      const res = await fetch(`${API_BASE}/export/logs`);
+      if (!res.ok) throw new Error("Export failed");
+      
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = "ymcs-shield-security-logs.csv";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
     } catch (e) {
       console.error(e);
     } finally {

@@ -83,11 +83,17 @@ const UserSchema = new mongoose.Schema({
   role: { type: String, default: 'admin' },
 });
 
+const SettingSchema = new mongoose.Schema({
+  key: { type: String, unique: true, required: true },
+  value: { type: mongoose.Schema.Types.Mixed, required: true }
+});
+
 const Log = mongoose.model("Log", RequestSchema);
 const Stat = mongoose.model("Stat", StatSchema);
 const Rule = mongoose.model("Rule", RuleSchema);
 const BlockedIP = mongoose.model("BlockedIP", BlockedIPSchema);
 const User = mongoose.model("User", UserSchema);
+const Setting = mongoose.model("Setting", SettingSchema);
 
 async function saveLog(logData) {
   // Always save to memory for speed and fallback
@@ -197,4 +203,4 @@ async function resetData() {
   }
 }
 
-module.exports = { connectDB, Log, Stat, Rule, BlockedIP, User, saveLog, getLogs, updateDailyStats, getHistory, getRules, updateRule, resetData };
+module.exports = { connectDB, Log, Stat, Rule, BlockedIP, User, Setting, saveLog, getLogs, updateDailyStats, getHistory, getRules, updateRule, resetData };

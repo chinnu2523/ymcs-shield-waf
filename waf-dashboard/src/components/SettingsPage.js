@@ -1,15 +1,53 @@
-import React, { useState } from "react";
-import { Settings, Sliders, Clock, Database, Mail, HardDrive, ShieldCheck, Activity, AlertTriangle, Eye } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Settings, Sliders, Clock, Database, Mail, HardDrive, ShieldCheck, Activity, AlertTriangle, Eye, Save } from "lucide-react";
+import API_BASE from "../config";
 
 export default function SettingsPage() {
   const [activeMode, setActiveMode] = useState(2); // 0=Monitor, 1=Detection, 2=Prevention
+  const [loading, setLoading] = useState(true);
+  
+  const [sysConfig, setSysConfig] = useState({
+    "Rate Limit Threshold": "100 req/min",
+    "Block Duration": "10 minutes",
+    "Log Retention": "30 days",
+    "Alert Email": "admin@quantumguard.com",
+    "Max Payload Size": "10 MB"
+  });
 
-  const configs = [
-    { label: "Rate Limit Threshold", value: "100 req/min",       color: "var(--primary)",   bg: "rgba(0,242,255,0.07)",    icon: <Sliders size={16} /> },
-    { label: "Block Duration",        value: "10 minutes",        color: "var(--secondary)", bg: "rgba(189,0,255,0.07)",    icon: <Clock size={16} /> },
-    { label: "Log Retention",         value: "30 days",           color: "var(--success)",   bg: "rgba(0,255,149,0.07)",    icon: <Database size={16} /> },
-    { label: "Alert Email",           value: "admin@quantumguard", color: "var(--warning)",  bg: "rgba(245,158,11,0.07)",   icon: <Mail size={16} /> },
-    { label: "Max Payload Size",      value: "10 MB",             color: "#f59e0b",          bg: "rgba(245,158,11,0.07)",   icon: <HardDrive size={16} /> },
+  useEffect(() => {
+    fetch(`${API_BASE}/settings`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.activeMode !== undefined) setActiveMode(Number(data.activeMode));
+        setSysConfig(prev => ({ ...prev, ...data }));
+        setLoading(false);
+      }).catch(() => setLoading(false));
+  }, []);
+
+  const saveSettings = async (key, val) => {
+    setSysConfig(prev => ({ ...prev, [key]: val }));
+    await fetch(`${API_BASE}/settings`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ [key]: val })
+    });
+  };
+
+  const handleModeSwitch = async (i) => {
+    setActiveMode(i);
+    await fetch(`${API_BASE}/settings`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ activeMode: i })
+    });
+  };
+
+  const configsFields = [
+    { key: "Rate Limit Threshold", color: "var(--primary)",   bg: "rgba(0,242,255,0.07)",    icon: <Sliders size={16} /> },
+    { key: "Block Duration",       color: "var(--secondary)", bg: "rgba(189,0,255,0.07)",    icon: <Clock size={16} /> },
+    { key: "Log Retention",        color: "var(--success)",   bg: "rgba(0,255,149,0.07)",    icon: <Database size={16} /> },
+    { key: "Alert Email",          color: "var(--warning)",   bg: "rgba(245,158,11,0.07)",   icon: <Mail size={16} /> },
+    { key: "Max Payload Size",     color: "#f59e0b",          bg: "rgba(245,158,11,0.07)",   icon: <HardDrive size={16} /> },
   ];
 
   const modes = [
@@ -93,17 +131,22 @@ export default function SettingsPage() {
         </div>
 
         <div className="flex flex-col gap-3">
-          {configs.map((c, i) => (
-            <div key={c.label} className="settings-row stagger-1" style={{ animationDelay: `${i * 0.05}s` }}>
+          {configsFields.map((c, i) => (
+            <div key={c.key} className="settings-row stagger-1" style={{ animationDelay: `${i * 0.05}s` }}>
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                 <div style={{ width: 36, height: 36, borderRadius: 9, background: c.bg, display: "flex", alignItems: "center", justifyContent: "center", color: c.color, border: `1px solid ${c.color}25`, flexShrink: 0 }}>
                   {c.icon}
                 </div>
-                <span style={{ fontWeight: 600, color: "var(--text-main)", fontSize: 14 }}>{c.label}</span>
+                <span style={{ fontWeight: 600, color: "var(--text-main)", fontSize: 14 }}>{c.key}</span>
               </div>
-              <span className="settings-badge" style={{ color: c.color, background: c.bg, border: `1px solid ${c.color}30` }}>
-                {c.value}
-              </span>
+              <input
+                type="text"
+                value={sysConfig[c.key]}
+                onChange={(e) => setSysConfig(prev => ({ ...prev, [c.key]: e.target.value }))}
+                onBlur={(e) => saveSettings(c.key, e.target.value)}
+                className="settings-badge bg-transparent outline-none text-right"
+                style={{ color: c.color, background: c.bg, border: `1px solid ${c.color}30`, minWidth: "120px", cursor: "text" }}
+              />
             </div>
           ))}
         </div>
@@ -129,7 +172,7 @@ export default function SettingsPage() {
             return (
               <button
                 key={m.label}
-                onClick={() => setActiveMode(i)}
+                onClick={() => handleModeSwitch(i)}
                 className={`settings-mode-btn${isActive ? " active" : ""}`}
                 style={isActive ? {
                   background: m.activeBg,

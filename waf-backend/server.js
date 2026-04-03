@@ -11,7 +11,7 @@ const { GoogleGenerativeAI } = require("@google/generative-ai");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 const { wafMiddleware, getStats, resetStats } = require("./src/waf");
-const { connectDB, Log, Stat, getLogs, getHistory, getRules, updateRule, resetData, BlockedIP } = require("./src/utils/db");
+const { connectDB, Log, Stat, getLogs, getHistory, getRules, updateRule, resetData, BlockedIP, Setting } = require("./src/utils/db");
 const { login, seedAdminUser, verifyToken } = require("./src/utils/auth");
 const monitor = require("./src/utils/systemMonitor");
 require("dotenv").config();
@@ -25,7 +25,18 @@ const PORT = process.env.PORT || 4000;
 
 // ── Basic middleware ──────────────────────────────────────────────
 app.use(helmet());
-app.use(cors({ origin: "*" })); // Allow all for demo
+
+const allowedOrigins = ["http://localhost:3000", "http://localhost:4000", "https://chinnu2523.github.io"];
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  }
+}));
+
 app.use(compression());         // GZIP payload compression for performance
 app.use(morgan("dev"));
 app.set("trust proxy", true); // Trust forwarded-for headers for IP identification
@@ -104,6 +115,51 @@ app.post("/api/reset", verifyToken, async (req, res) => {
 app.get("/api/logs", verifyToken, async (req, res) => {
   const logs = await getLogs();
   res.json(logs);
+});
+
+// CSV Export Route
+app.get("/api/export/logs", verifyToken, async (req, res) => {
+  try {
+    const logs = await getLogs(1000); // Fetch up to 1000 recent logs
+    const csvHeader = "Timestamp,IP,Method,Path,Status,RiskScore,AttackType,Explanation\r\n";
+    const csvRows = logs.map(log => {
+      return `"${log.timestamp}","${log.ip}","${log.method}","${log.path}","${log.status}","${log.riskScore}","${log.attackType}","${log.explanation}"`;
+    }).join('\r\n');
+    
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename="ymcs-shield-security-logs.csv"');
+    res.status(200).send(csvHeader + csvRows);
+  } catch (err) {
+    res.status(500).json({ error: "Export failed" });
+  }
+});
+
+// Settings API
+app.get("/api/settings", verifyToken, async (req, res) => {
+  try {
+    const settings = await Setting.find({});
+    const formatted = {};
+    settings.forEach(s => { formatted[s.key] = s.value; });
+    res.json(formatted);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to load settings" });
+  }
+});
+
+app.post("/api/settings", verifyToken, express.json(), async (req, res) => {
+  try {
+    const keys = Object.keys(req.body);
+    for (let key of keys) {
+      await Setting.findOneAndUpdate(
+        { key },
+        { value: req.body[key] },
+        { upsert: true }
+      );
+    }
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to update settings" });
+  }
 });
 
 app.get("/api/history", verifyToken, async (req, res) => {
