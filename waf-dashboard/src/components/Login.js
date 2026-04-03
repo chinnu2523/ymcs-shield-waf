@@ -37,7 +37,12 @@ export default function Login({ onSuccess, onBack }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password })
       })
-      .then(res => res.json())
+      .then(async res => {
+        if (res.status === 404) throw new Error("ROUTE_NOT_FOUND");
+        if (res.status === 401) throw new Error("INVALID_AUTH");
+        if (!res.ok) throw new Error("NETWORK_FAILURE");
+        return res.json();
+      })
       .then(data => {
         if (data.token) {
           localStorage.setItem("waf_jwt_token", data.token);
@@ -45,13 +50,15 @@ export default function Login({ onSuccess, onBack }) {
           setStatus("Access Granted: Welcome VISAKA");
           setTimeout(() => onSuccess(), 900);
         } else {
-          setStatus("Access Denied: Invalid Neural Signature");
-          setIsScanning(false);
-          setScanProgress(0);
+          throw new Error("INVALID_AUTH");
         }
       })
-      .catch(() => {
-        setStatus("Access Denied: Core Offline");
+      .catch((err) => {
+        let msg = "Access Denied: Core Offline";
+        if (err.message === "INVALID_AUTH") msg = "Access Denied: Invalid Neural Signature";
+        if (err.message === "ROUTE_NOT_FOUND") msg = "Sync Error: API v2.0.5 Not Found";
+        
+        setStatus(msg);
         setIsScanning(false);
         setScanProgress(0);
       });

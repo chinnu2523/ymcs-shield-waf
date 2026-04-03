@@ -50,8 +50,22 @@ app.use(wafMiddleware);
 
 // ── Dashboard API routes ──────────────────────────────────────────
 
+// ── CORE SYSTEM ENDPOINTS (Accessible prior to complex WAF logic) ──
+app.get("/health", (req, res) => {
+  const health = monitor.getHealthState();
+  res.json({ 
+    status:   health.backend.status === "ONLINE" ? "WAF is online" : "WAF degraded",
+    uptime:   process.uptime(),
+    backend:  health.backend.status,
+    database: health.database.status,
+    waf:      health.waf.status,
+    stats:    getStats(),
+    version:  "2.0.5-STABLE"
+  });
+});
+
 // Auth Route
-app.post("/api/auth/login", express.json(), async (req, res) => {
+app.post("/api/auth/login", async (req, res) => {
   try {
     const { username, password } = req.body;
     const result = await login(username, password);
@@ -61,7 +75,11 @@ app.post("/api/auth/login", express.json(), async (req, res) => {
   }
 });
 
-// Blocklist Management
+app.get("/api/stats", verifyToken, (req, res) => {
+  res.json(getStats());
+});
+
+// ── PERSISTENT BLOCKLIST MANAGEMENT ──────────────────────────────
 app.get("/api/blocklist", verifyToken, async (req, res) => {
   try {
     const records = await BlockedIP.find().sort("-blockedAt");
@@ -71,7 +89,7 @@ app.get("/api/blocklist", verifyToken, async (req, res) => {
   }
 });
 
-app.post("/api/blocklist", verifyToken, express.json(), async (req, res) => {
+app.post("/api/blocklist", verifyToken, async (req, res) => {
   try {
     const { ip, reason } = req.body;
     if (!ip) return res.status(400).json({ error: "IP address required" });
@@ -144,7 +162,7 @@ app.get("/api/settings", verifyToken, async (req, res) => {
   }
 });
 
-app.post("/api/settings", verifyToken, express.json(), async (req, res) => {
+app.post("/api/settings", verifyToken, async (req, res) => {
   try {
     const keys = Object.keys(req.body);
     for (let key of keys) {
@@ -170,7 +188,7 @@ app.get("/api/rules", verifyToken, async (req, res) => {
   res.json(rules);
 });
 
-app.put("/api/rules/:id", verifyToken, express.json(), async (req, res) => {
+app.put("/api/rules/:id", verifyToken, async (req, res) => {
   try {
     await updateRule(req.params.id, req.body);
     res.json({ success: true });
@@ -179,7 +197,7 @@ app.put("/api/rules/:id", verifyToken, express.json(), async (req, res) => {
   }
 });
 
-app.post("/api/predictions", verifyToken, express.json(), async (req, res) => {
+app.post("/api/predictions", verifyToken, async (req, res) => {
   try {
     const logs = await getLogs(200);
     
@@ -415,20 +433,6 @@ app.post("/api/data", (req, res) => {
 // ── System Health (Full Detail) ──────────────────────────────────
 app.get("/api/system/health", verifyToken, (req, res) => {
   res.json(monitor.getHealthState());
-});
-
-// ── Health check (quick) ─────────────────────────────────────────
-app.get("/health", (req, res) => {
-  const health = monitor.getHealthState();
-  res.json({ 
-    status:   health.backend.status === "ONLINE" ? "WAF is online" : "WAF degraded",
-    uptime:   process.uptime(),
-    backend:  health.backend.status,
-    database: health.database.status,
-    waf:      health.waf.status,
-    stats:    getStats(),
-    version:  "2.0.4"
-  });
 });
 
 // ── Start server (Cluster Mode for Durability) ─────────────────────
