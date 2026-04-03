@@ -5,8 +5,8 @@ const morgan  = require("morgan");
 const PDFDocument = require("pdfkit");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
-const { wafMiddleware, getStats } = require("./src/waf");
-const { connectDB, Log, Stat, getLogs, getHistory, getRules, updateRule } = require("./src/utils/db");
+const { wafMiddleware, getStats, resetStats } = require("./src/waf");
+const { connectDB, Log, Stat, getLogs, getHistory, getRules, updateRule, resetData } = require("./src/utils/db");
 require("dotenv").config();
 
 const app  = express();
@@ -29,6 +29,16 @@ app.use(wafMiddleware);
 // ── Dashboard API routes ──────────────────────────────────────────
 app.get("/api/stats", (req, res) => {
   res.json(getStats());
+});
+
+app.post("/api/reset", async (req, res) => {
+  try {
+    await resetData();
+    resetStats();
+    res.json({ success: true, message: "System reset complete" });
+  } catch (e) {
+    res.status(500).json({ error: "Reset failed", detail: e.message });
+  }
 });
 
 app.get("/api/history", async (req, res) => {

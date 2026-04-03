@@ -166,4 +166,21 @@ async function updateRule(id, updates) {
   }
 }
 
-module.exports = { connectDB, Log, Stat, Rule, saveLog, getLogs, updateDailyStats, getHistory, getRules, updateRule };
+async function resetData() {
+  // 1. Clear Memory
+  MEMORY_LOGS.length = 0;
+  MEMORY_STATS.clear();
+
+  // 2. Clear MongoDB if connected
+  if (isDBConnected) {
+    try {
+      await Log.deleteMany({});
+      await Stat.deleteMany({});
+      console.log("🧹  WAF Data Purge Complete (MongoDB)");
+    } catch (e) {
+      console.error("Purge Error:", e.message);
+    }
+  }
+}
+
+module.exports = { connectDB, Log, Stat, Rule, saveLog, getLogs, updateDailyStats, getHistory, getRules, updateRule, resetData };

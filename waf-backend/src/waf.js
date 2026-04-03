@@ -160,4 +160,12 @@ function getStats() {
   };
 }
 
-module.exports = { wafMiddleware, getStats };
+function resetStats() {
+  stats.total   = 0;
+  stats.blocked = 0;
+  stats.allowed = 0;
+  stats.latency = 0;
+  console.log("♻️  WAF Stats Reset Complete");
+}
+
+module.exports = { wafMiddleware, getStats, resetStats };

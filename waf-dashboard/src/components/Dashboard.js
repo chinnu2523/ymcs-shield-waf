@@ -1,9 +1,26 @@
 import React, { useState } from "react";
-import { Activity, Shield, AlertCircle, Cpu, Globe, Lock, Search, Heart, Zap, Terminal, Play, Flame, Send } from "lucide-react";
+import { Activity, Shield, AlertCircle, Cpu, Globe, Lock, Search, Heart, Zap, Terminal, Play, Flame, Send, RotateCcw } from "lucide-react";
 import API_BASE from "../config";
 
 export default function Dashboard({ rules = [], counters, threats, logs, status = "online" }) {
   const [simulating, setSimulating] = useState(null); // null or { type, status }
+  const [rebooting, setRebooting] = useState(false);
+
+  const handleRestart = async () => {
+    if (!window.confirm("CRITICAL: Confirmed System Reset? All logs and metrics will be purged.")) return;
+    
+    setRebooting(true);
+    try {
+      await fetch(`${API_BASE.replace("/api", "")}/api/reset`, { method: "POST" });
+      // Reload page after cinematic delay
+      setTimeout(() => {
+        window.location.reload();
+      }, 4000);
+    } catch (e) {
+      console.error("Restart failed", e);
+      setRebooting(false);
+    }
+  };
 
   const triggerAttack = async (type) => {
     setSimulating({ type, status: "DISPATCHING" });
@@ -110,6 +127,13 @@ export default function Dashboard({ rules = [], counters, threats, logs, status 
             </p>
           </div>
           <div className="flex items-center gap-4">
+            <button 
+              onClick={handleRestart}
+              className="glass-panel px-4 py-2 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-primary/60 border-primary/10 hover:border-primary/50 hover:text-primary transition-all bg-primary/2 h-[44px] rounded-xl mr-2"
+            >
+              <RotateCcw size={14} />
+              Reset System Data
+            </button>
             <div style={{
               padding: "10px 18px",
               background: "rgba(255,255,255,0.04)",
@@ -343,6 +367,43 @@ export default function Dashboard({ rules = [], counters, threats, logs, status 
           </div>
         </div>
       </div>
+      {/* ── Rebooting Cinematic Overlay ── */}
+      {rebooting && (
+        <div className="fixed inset-0 z-[9999] bg-black/99 backdrop-blur-2xl flex flex-col items-center justify-center p-10 select-none">
+           <div className="relative mb-12">
+              <div className="w-32 h-32 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
+              <div className="absolute inset-0 flex items-center justify-center">
+                 <Shield size={40} className="text-primary animate-pulse" />
+              </div>
+           </div>
+
+           <div className="text-center max-w-md w-full">
+              <h2 className="text-2xl font-black text-white uppercase tracking-[0.5em] mb-4">Rebooting Neural Link</h2>
+              <div className="w-full bg-white/5 h-1 rounded-full overflow-hidden mb-6">
+                 <div className="h-full bg-primary animate-[shimmer_4s_ease-in-out_infinite]" style={{ width: "100%", transformOrigin: "left" }} />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                 {[
+                   { label: "Memory Flush", status: "COMPLETE" },
+                   { label: "Telemetry Purge", status: "COMPLETE" },
+                   { label: "Kernel Reload", status: "INITIALIZING" },
+                   { label: "Neural Sync", status: "WAITING" },
+                 ].map((step, i) => (
+                   <div key={i} className="flex justify-between items-center bg-white/2 p-2 px-3 border border-white/5 rounded">
+                      <span className="text-[9px] font-black text-dim uppercase tracking-widest">{step.label}</span>
+                      <span className={`text-[8px] font-bold ${step.status === "COMPLETE" ? "text-success" : "text-primary animate-pulse"} uppercase`}>{step.status}</span>
+                   </div>
+                 ))}
+              </div>
+           </div>
+
+           <div className="absolute bottom-10 font-mono text-[10px] text-primary/40 uppercase tracking-[0.3em] text-center">
+              X-8800 Core Security Reset Sequence in Progress...<br/>
+              Node: KL-Univ-Maj-Proj-Alpha
+           </div>
+        </div>
+      )}
     </div>
   );
 }
