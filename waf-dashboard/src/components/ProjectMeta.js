@@ -6,8 +6,8 @@ export default function ProjectMeta() {
     { label: "Student Name",    value: "VISAKA VEERA GURU DATTA SRINIDHI",             icon: "👤" },
     { label: "Institution",     value: "KL UNIVERSITY",                                icon: "🏛️" },
     { label: "Project Title",   value: "YMCS Shield WAF Security Suite",               icon: "🛡️" },
-    { label: "Academic Session",value: "2023-2024 Batch",                              icon: "🎓" },
-    { label: "Submission Ref",  value: "KL-CSE-MAJOR-2023-088",                        icon: "📄" },
+    { label: "Academic Session",value: "2022-2026 Batch",                              icon: "🎓" },
+    { label: "Submission Ref",  value: "KL-CSE-MAJOR-2026-088",                        icon: "📄" },
     { label: "Tech Stack",      value: "React, Node.js, AI Core, YMCS CSS",            icon: "💻" }
   ];
 
