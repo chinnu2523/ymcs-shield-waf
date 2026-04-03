@@ -29,22 +29,22 @@ async function wafMiddleware(req, res, next) {
   res.on("finish", () => {
     const diff = process.hrtime(start);
     const durationMs = (diff[0] * 1e3 + diff[1] * 1e-6);
-    const finalMs = Math.max(1, Math.round(durationMs));
     
+    // Internal float-based rolling average for precision
     if (stats.latency === 0) {
-      stats.latency = finalMs;
+      stats.latency = durationMs;
     } else {
-      // 10-point moving average for smoothness
-      stats.latency = Math.round((stats.latency * 0.9) + (finalMs * 0.1));
+      stats.latency = (stats.latency * 0.9) + (durationMs * 0.1);
     }
   });
 
-  stats.total++;
-  
   let ip = req.headers['x-forwarded-for'] || req.ip || req.connection.remoteAddress;
   if (ip && typeof ip === "string" && ip.includes(",")) {
     ip = ip.split(",")[0].trim();
   }
+
+  stats.total++;
+  console.log(`🔍 [WAF] Request: ${req.method} ${req.url} from ${ip}`);
 
   try {
     // 0. Payload Size Check (Durability - DoS Protection)
@@ -92,6 +92,7 @@ async function wafMiddleware(req, res, next) {
           if (result.detected) {
             stats.blocked++;
             saveToDB(req, ip, { ...result, riskScore: 100 });
+            console.log(`🛡️  [WAF BLOCKED] ${detector.type} detected on ${req.url}`);
             return res.status(403).json({ error: "Forbidden", message: result.message || `${detector.type} detected` });
           }
         } catch (detError) {
@@ -162,6 +163,7 @@ async function saveToDB(req, ip, result, isBlocked = true) {
 function getStats() {
   return {
     ...stats,
+    latency: Math.max(1, Math.round(stats.latency)), // Round only for display, floor at 1ms
     blockRate: stats.total ? ((stats.blocked / stats.total) * 100).toFixed(1) : "0.0",
   };
 }

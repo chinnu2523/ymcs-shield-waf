@@ -23,6 +23,7 @@ const SQL_PATTERNS = [
   // Logical Bypasses
   /or\s+[\'\"]?\d+[\'\"]?\s*=\s*[\'\"]?\d+[\'\"]?/i,
   /and\s+[\'\"]?\d+[\'\"]?\s*=\s*[\'\"]?\d+[\'\"]?/i,
+  /\d+\s+or\s+\d+\s*=\s*\d+/i,
   / (or|and|xor) .* (=|>|<)/i,
   
   // Time-based Bypasses

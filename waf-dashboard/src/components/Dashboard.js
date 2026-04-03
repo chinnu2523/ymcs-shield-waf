@@ -43,21 +43,24 @@ export default function Dashboard({ rules = [], counters, threats, logs, status 
   const triggerAttack = async (type) => {
     setSimulating({ type, status: "DISPATCHING" });
     
+    // Cache buster to ensure the WAF actually processes the request
+    const entropy = Math.random().toString(36).substring(7);
+    const cb = `_t=${Date.now()}-${entropy}`;
     let url = `${API_BASE.replace("/api", "")}`;
     let options = { method: "GET" };
 
-    if (type === "SQLI") url += "/api/users?id=1%20OR%201=1";
+    if (type === "SQLI") url += `/api/users?id=1%20OR%201=1&${cb}`;
     if (type === "XSS") {
-      url += "/api/data";
+      url += `/api/data?${cb}`;
       options = { 
         method: "POST", 
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ comment: "<script>alert('WAF_TEST')</script>" })
       };
     }
-    if (type === "TRAVERSAL") url += "/api/data?file=../../etc/passwd";
+    if (type === "TRAVERSAL") url += `/api/data?file=../../etc/passwd&${cb}`;
     if (type === "DOS") {
-      url += "/api/data";
+      url += `/api/data?${cb}`;
       options = { 
         method: "POST", 
         headers: { "Content-Type": "application/json" },

@@ -163,6 +163,10 @@ app.get("/api/data", (req, res) => {
   res.json({ message: "Protected data — you passed the WAF!" });
 });
 
+app.post("/api/data", (req, res) => {
+  res.json({ message: "Payload processed" });
+});
+
 // ── Health check ──────────────────────────────────────────────────
 app.get("/health", (req, res) => {
   res.json({ status: "WAF is online", uptime: process.uptime() });
