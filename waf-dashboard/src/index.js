@@ -2,6 +2,19 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
 import App from './App';
+
+// ── Global Fetch Override for JWT Injection ──
+const originalFetch = window.fetch;
+window.fetch = async function () {
+  let [resource, config] = arguments;
+  const token = localStorage.getItem('waf_jwt_token');
+  if (token && typeof resource === 'string' && resource.includes('/api/')) {
+    if (!config) config = {};
+    if (!config.headers) config.headers = {};
+    config.headers['Authorization'] = `Bearer ${token}`;
+  }
+  return originalFetch.call(this, resource, config);
+};
 import ErrorBoundary from './components/ErrorBoundary';
 
 // ── Standard React Mount ──
