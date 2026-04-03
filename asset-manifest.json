@@ -1,13 +1,13 @@
 {
   "files": {
     "main.css": "/ymcs-shield-waf/static/css/main.67360b8a.css",
-    "main.js": "/ymcs-shield-waf/static/js/main.2c5e51a2.js",
+    "main.js": "/ymcs-shield-waf/static/js/main.ec1e7dbe.js",
     "index.html": "/ymcs-shield-waf/index.html",
     "main.67360b8a.css.map": "/ymcs-shield-waf/static/css/main.67360b8a.css.map",
-    "main.2c5e51a2.js.map": "/ymcs-shield-waf/static/js/main.2c5e51a2.js.map"
+    "main.ec1e7dbe.js.map": "/ymcs-shield-waf/static/js/main.ec1e7dbe.js.map"
   },
   "entrypoints": [
     "static/css/main.67360b8a.css",
-    "static/js/main.2c5e51a2.js"
+    "static/js/main.ec1e7dbe.js"
   ]
 }
