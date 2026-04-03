@@ -62,7 +62,7 @@ export default function LandingPage({ onEnter }) {
           <div className="academic-branding">
             <span className="kl-tag animate-pulse">KL UNIVERSITY</span>
             <span style={{ fontSize: 10, fontWeight: 900, letterSpacing: "0.45em", color: "rgba(255,255,255,0.35)", textTransform: "uppercase" }}>
-              Major Project Submission 2024
+              Major Project Submission 2026
             </span>
           </div>
         </div>
@@ -92,6 +92,9 @@ export default function LandingPage({ onEnter }) {
             <span style={{ color: "var(--primary)", fontWeight: 700 }}>Neural Engine v2.0</span>.
             Real-time threat intelligence &amp; automated perimeter defense.
           </p>
+          <div className="flex items-center justify-center gap-4 text-xs font-black uppercase text-dim tracking-widest mt-6 bg-white/5 border border-white/10 px-4 py-2 rounded-lg inline-flex">
+            <span>K.Meghana</span> • <span>R.Yamini</span> • <span>G.Charan</span> • <span>Srinidhi</span>
+          </div>
         </div>
 
         {/* CTA Button */}
@@ -182,7 +185,7 @@ export default function LandingPage({ onEnter }) {
         Protocol: SCC-256 / Neural Node 09
       </div>
       <div className="absolute bottom-10 right-10 hidden md:block" style={{ fontSize: 9, color: "var(--text-dim)", fontWeight: 900, letterSpacing: "0.35em", textTransform: "uppercase", opacity: 0.22 }}>
-        © 2024 YMCS Shield Systems
+        © 2026 YMCS Shield Systems
       </div>
     </div>
   );
