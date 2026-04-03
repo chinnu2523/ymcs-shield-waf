@@ -4,10 +4,17 @@ import { Shield, ChevronLeft } from "lucide-react";
 export default function Login({ onSuccess, onBack }) {
   const [isScanning, setIsScanning]     = useState(false);
   const [scanProgress, setScanProgress]  = useState(0);
-  const [status, setStatus]             = useState("Awaiting Biometric Input");
+  const [status, setStatus]             = useState("Awaiting Credentials");
   const [granted, setGranted]           = useState(false);
+  
+  const [username, setUsername]         = useState("");
+  const [password, setPassword]         = useState("");
 
   const startScan = () => {
+    if (!username || !password) {
+      setStatus("Input Required: Please enter credentials");
+      return;
+    }
     if (isScanning || granted) return;
     setIsScanning(true);
     setStatus("Scanning Neural Pattern...");
@@ -24,11 +31,11 @@ export default function Login({ onSuccess, onBack }) {
       }, 40);
     } else if (scanProgress >= 100 && isScanning) {
       // Execute Real Authentication!
-      fetch("https://ymcs-shield-backend.onrender.com/api/auth/login", {
+      const API_BASE_LOCAL = window.location.hostname === "localhost" ? "http://localhost:4000" : "https://ymcs-shield-backend.onrender.com";
+      fetch(`${API_BASE_LOCAL}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        // Hardcoding Visaka's credentials for the simulation showcase
-        body: JSON.stringify({ username: "visaka", password: "visaka" })
+        body: JSON.stringify({ username, password })
       })
       .then(res => res.json())
       .then(data => {
@@ -240,6 +247,28 @@ export default function Login({ onSuccess, onBack }) {
           }}>
             {status}
           </p>
+        </div>
+
+        <div className="flex flex-col items-center justify-center gap-6 mt-8 relative z-20">
+          {/* Real Inputs for Admin Login */}
+          <div className="flex flex-col gap-4 w-64 mb-4">
+            <input 
+              type="text" 
+              placeholder="ADMINISTRATOR ID" 
+              value={username}
+              onChange={e => setUsername(e.target.value)}
+              className="bg-black/40 border border-primary/20 outline-none text-white text-xs font-mono px-4 py-3 text-center uppercase tracking-widest placeholder:text-dim/40 rounded focus:border-primary transition-colors"
+              disabled={isScanning}
+            />
+            <input 
+              type="password" 
+              placeholder="ENCRYPTION KEY" 
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              className="bg-black/40 border border-primary/20 outline-none text-white text-xs font-mono px-4 py-3 text-center uppercase tracking-widest placeholder:text-dim/40 rounded focus:border-primary transition-colors"
+              disabled={isScanning}
+            />
+          </div>
         </div>
 
         {/* Back button */}

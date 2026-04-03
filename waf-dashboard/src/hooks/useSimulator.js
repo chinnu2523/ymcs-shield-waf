@@ -19,11 +19,14 @@ export default function useSimulator() {
 
   const fetchRealData = async () => {
     try {
-      const sRes = await fetch(`${API_BASE}/stats`);
+      const token = localStorage.getItem("waf_jwt_token");
+      const headers = token ? { "Authorization": `Bearer ${token}` } : {};
+
+      const sRes = await fetch(`${API_BASE}/stats`, { headers });
       const sData = await sRes.json();
       setCounters(prev => ({ ...prev, ...sData }));
 
-      const hRes = await fetch(`${API_BASE}/history`);
+      const hRes = await fetch(`${API_BASE}/history`, { headers });
       const hData = await hRes.json();
       const allowedHistory = hData.map(h => h.allowed);
       const blockedHistory = hData.map(h => h.blocked);
@@ -31,7 +34,7 @@ export default function useSimulator() {
       while (blockedHistory.length < 20) blockedHistory.unshift(0);
       setHistory({ allowed: allowedHistory, blocked: blockedHistory });
 
-      const lRes = await fetch(`${API_BASE}/logs`);
+      const lRes = await fetch(`${API_BASE}/logs`, { headers });
       if (lRes.ok) {
         const lData = await lRes.json();
         if (Array.isArray(lData)) {
@@ -39,17 +42,17 @@ export default function useSimulator() {
           const realThreats = lData.filter(l => l.status === "BLOCKED").map(l => ({
             id: l._id,
             time: new Date(l.timestamp).toLocaleTimeString(),
-            ip: l.ip,
-            path: l.path || "/api/stats",
-            type: l.attackType,
+            type: l.attackType || "Signature Match",
             severity: l.riskScore > 80 ? "critical" : "high",
-            payload: l.payload
+            path: l.path,
+            ip: l.ip || "127.0.0.1",
+            country: l.country || "Unknown"
           }));
           setThreats(realThreats);
         }
       }
 
-      const rRes = await fetch(`${API_BASE}/rules`);
+      const rRes = await fetch(`${API_BASE}/rules`, { headers });
       if (rRes.ok) {
         const rData = await rRes.json();
         if (Array.isArray(rData)) setRules(rData);
