@@ -1,7 +1,49 @@
-import React from "react";
-import { Activity, Shield, AlertCircle, Cpu, Globe, Lock, Search, Heart, Zap, Terminal } from "lucide-react";
+import React, { useState } from "react";
+import { Activity, Shield, AlertCircle, Cpu, Globe, Lock, Search, Heart, Zap, Terminal, Play, Flame, Send } from "lucide-react";
+import API_BASE from "../config";
 
-export default function Dashboard({ rules = [], counters, threats, logs }) {
+export default function Dashboard({ rules = [], counters, threats, logs, status = "online" }) {
+  const [simulating, setSimulating] = useState(null); // null or { type, status }
+
+  const triggerAttack = async (type) => {
+    setSimulating({ type, status: "DISPATCHING" });
+    
+    let url = `${API_BASE.replace("/api", "")}`;
+    let options = { method: "GET" };
+
+    if (type === "SQLI") url += "/api/users?id=1%20OR%201=1";
+    if (type === "XSS") {
+      url += "/api/data";
+      options = { 
+        method: "POST", 
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ comment: "<script>alert('WAF_TEST')</script>" })
+      };
+    }
+    if (type === "TRAVERSAL") url += "/api/data?file=../../etc/passwd";
+    if (type === "DOS") {
+      url += "/api/data";
+      options = { 
+        method: "POST", 
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ data: "A".repeat(1.5 * 1024 * 1024) })
+      };
+    }
+
+    try {
+      const res = await fetch(url, options);
+      if (res.status === 403 || res.status === 413 || res.status === 429) {
+        setSimulating({ type, status: "MITIGATED" });
+      } else {
+        setSimulating({ type, status: "FAILED (Unexpected Status)" });
+      }
+    } catch (e) {
+      setSimulating({ type, status: "ERROR" });
+    }
+
+    // Reset after 3 seconds
+    setTimeout(() => setSimulating(null), 3000);
+  };
   const displayLogs = (logs && Array.isArray(logs)) ? logs.map((l, i) => ({
     id: l._id || `L-${i}`,
     time: l.timestamp ? new Date(l.timestamp).toLocaleTimeString() : "Pending...",
@@ -57,26 +99,48 @@ export default function Dashboard({ rules = [], counters, threats, logs }) {
             </div>
             Operation Command
           </h1>
-          <p className="text-dim mt-4 font-black uppercase flex items-center gap-2 opacity-60" style={{ fontSize: 10, letterSpacing: "0.3em" }}>
-            <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--primary)", boxShadow: "0 0 8px var(--primary)", display: "inline-block" }} className="animate-pulse" />
-            Live Intelligence Stream • Node-Alpha-01
-          </p>
-        </div>
-        <div style={{
-          padding: "10px 18px",
-          background: "rgba(255,255,255,0.04)",
-          border: "1px solid rgba(255,255,255,0.08)",
-          borderRadius: 12,
-          display: "flex",
-          alignItems: "center",
-          gap: 12
-        }}>
-          <div className="flex flex-col items-end">
-            <span style={{ fontSize: 9, fontWeight: 900, color: "var(--text-dim)", textTransform: "uppercase", letterSpacing: "0.15em" }}>System Local Time</span>
-            <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-main)", fontFamily: "var(--font-mono)" }}>{new Date().toLocaleTimeString()}</span>
+            <p className="text-dim mt-4 font-black uppercase flex items-center gap-2 opacity-60" style={{ fontSize: 10, letterSpacing: "0.3em" }}>
+              <span style={{ 
+                width: 8, height: 8, borderRadius: "50%", 
+                background: status === "online" ? "var(--success)" : status === "loading" ? "var(--warning)" : "var(--danger)", 
+                boxShadow: `0 0 8px ${status === "online" ? "var(--success)" : status === "loading" ? "var(--warning)" : "var(--danger)"}`, 
+                display: "inline-block" 
+              }} className={status === "online" ? "animate-pulse" : ""} />
+              {status === "online" ? "Shield Synchronized • Node-Alpha-01" : status === "loading" ? "Initializing Connection..." : "WAF Core Offline • Connection Lost"}
+            </p>
+          </div>
+          <div className="flex items-center gap-4">
+            <div style={{
+              padding: "10px 18px",
+              background: "rgba(255,255,255,0.04)",
+              border: "1px solid rgba(255,255,255,0.08)",
+              borderRadius: 12,
+              display: "flex",
+              alignItems: "center",
+              gap: 12
+            }}>
+              <div className="flex flex-col items-end">
+                <span style={{ fontSize: 9, fontWeight: 900, color: "var(--text-dim)", textTransform: "uppercase", letterSpacing: "0.15em" }}>System Local Time</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-main)", fontFamily: "var(--font-mono)" }}>{new Date().toLocaleTimeString()}</span>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+
+      {/* ── Attack Simulation Overlay ── */}
+      {simulating && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in">
+           <div className="glass-card p-10 border-2 border-primary/50 shadow-[0_0_50px_rgba(0,242,255,0.2)] flex flex-col items-center gap-6 animate-scale-up">
+              <div className="w-20 h-20 rounded-full border-4 border-t-primary border-r-primary/30 border-b-primary/10 border-l-primary/10 animate-spin flex items-center justify-center">
+                 <Shield className="text-primary animate-pulse" size={32} />
+              </div>
+              <div className="text-center">
+                 <h2 className="text-2xl font-black text-white uppercase tracking-widest mb-2">Simulating Attack</h2>
+                 <p className="text-primary font-mono text-xs">{simulating.type}: {simulating.status}...</p>
+              </div>
+           </div>
+        </div>
+      )}
 
       {/* ── Quick Stats Grid ── */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "1.5rem" }}>
@@ -180,8 +244,55 @@ export default function Dashboard({ rules = [], counters, threats, logs }) {
           </div>
         </div>
 
-        {/* Right Column: Live Surveillance Feed */}
+        {/* Right Column: Tools & Logs */}
         <div className="col-span-12 lg:col-span-4 flex flex-col gap-6">
+          
+          {/* ── Security Stress Test (New Module) ── */}
+          <div className="glass-card p-6 border-b-2 border-primary/20 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
+               <Flame size={60} className="text-primary" />
+            </div>
+            
+            <div className="flex items-center gap-3 mb-6 relative z-10">
+              <div style={{ background: "rgba(0,242,255,0.08)", padding: "10px", borderRadius: 12, border: "1px solid rgba(0,242,255,0.2)" }}>
+                <Activity size={20} className="text-primary" />
+              </div>
+              <div>
+                <h3 className="text-white font-black uppercase tracking-widest text-sm">Security Stress Test</h3>
+                <p className="text-[10px] text-dim uppercase tracking-wider font-bold">Launch Controlled Verification</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 relative z-10">
+              {[
+                { id: "SQLI", label: "SQL Injection", icon: <Lock size={14} />, desc: "Database Query Spoofing" },
+                { id: "XSS", label: "Cross-Site Scripting", icon: <Search size={14} />, desc: "Script Payload Injection" },
+                { id: "TRAVERSAL", label: "Path Traversal", icon: <Globe size={14} />, desc: "File System Exposure" },
+                { id: "DOS", label: "DDoS Simulation", icon: <Shield size={14} />, desc: "Volumetric Traffic Spike" },
+              ].map((atk) => (
+                <button
+                  key={atk.id}
+                  onClick={() => triggerAttack(atk.id)}
+                  disabled={!!simulating}
+                  className="flex flex-col gap-3 p-4 rounded-xl border border-white/5 bg-white/2 hover:bg-primary/10 hover:border-primary/30 transition-all text-left disabled:opacity-50 disabled:cursor-not-allowed group/btn"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-black/40 flex items-center justify-center border border-white/10 group-hover/btn:border-primary/50 text-white">
+                    {atk.icon}
+                  </div>
+                  <div>
+                    <div className="text-[10px] font-black text-white uppercase tracking-wider mb-0.5">{atk.label}</div>
+                    <div className="text-[8px] font-bold text-dim uppercase tracking-tight">{atk.desc}</div>
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            <div className="mt-6 p-3 rounded-lg bg-primary/5 border border-primary/10 flex items-center gap-3">
+               <div className="animate-pulse w-2 h-2 rounded-full bg-primary" />
+               <span className="text-[9px] font-bold text-primary uppercase tracking-[0.2em]">Ready for Verification Dispatch</span>
+            </div>
+          </div>
+
           <div className="glass-card p-6 flex flex-col flex-1 border-b-2 border-primary/20">
             <div className="flex items-center gap-3 mb-6">
               <div style={{ background: "rgba(0,242,255,0.08)", padding: "10px", borderRadius: 12, border: "1px solid rgba(0,242,255,0.2)" }}>

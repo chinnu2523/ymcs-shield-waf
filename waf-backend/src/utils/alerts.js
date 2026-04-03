@@ -46,9 +46,13 @@ async function sendAlert(threat) {
 
   try {
     await transporter.sendMail(mailOptions);
-    console.log("✅ Critical alert email sent.");
+    console.log("✅ WAF Alert: Critical threat email dispatched.");
   } catch (err) {
-    console.error("❌ Email alert failed:", err.message);
+    // Log once as a warning to avoid cluttering the production/dev logs
+    if (!global.emailWarned) {
+      console.warn("⚠️  WAF Alert: Email delivery failed. Check SMTP config.");
+      global.emailWarned = true;
+    }
   }
 }
 

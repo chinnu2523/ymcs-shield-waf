@@ -1,4 +1,5 @@
 const COMMAND_INJECTION_PATTERNS = [
+  // Shell operators and execution patterns
   /`[^`]*`/g,           // Backticks
   /\$\([^)]*\)/g,       // $() syntax
   /\$\{[^}]*\}/g,       // ${} syntax
@@ -10,6 +11,22 @@ const COMMAND_INJECTION_PATTERNS = [
   /\bproc_open\b/gi,    // proc_open
   /\beval\b/gi,         // eval
   /\brm\s+-/gi,         // rm command with flags
+  
+  // Sensitive Commands (Unix/Linux)
+  /\bcat\b(.*\s)+(\/etc\/passwd|\/etc\/shadow)/i,
+  /\b(grep|awk|sed)\b/i,
+  /\b(curl|wget|nc|netcat|ssh|scp)\b/i,
+  /\b(ls|dir|whoami|id|hostname|env)\b/i,
+  /\b(ps|top|htop|kill|pkill)\b/i,
+  /\b(sudo|su|login)\b/i,
+  /\b(perl|python|php|ruby|gcc|g\+\+)\b/i,
+  /\b(node|npm|yarn)\b/i,
+  /\b(bash|sh|zsh|fish|csh|tcsh)\b/i,
+  
+  // Sensitive Commands (Windows)
+  /\b(powershell|pwsh|cmd|type|copy|del|move|ren)\b/i,
+  /\b(net\s+user|net\s+share)\b/i,
+  /\b(systeminfo|tasklist|ipconfig)\b/i
 ];
 
 function detectCommandInjection(input) {

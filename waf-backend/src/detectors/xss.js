@@ -1,23 +1,46 @@
 const XSS_PATTERNS = [
+  // Scripts & Injections
   /<script[^>]*>[\s\S]*?<\/script>/gi,
   /javascript:/gi,
-  /on\w+\s*=/gi,
-  /<iframe/gi,
-  /eval\(/gi,
+  /vbscript:/gi,
   /expression\(/gi,
+  /eval\(/gi,
+  
+  // Event Handlers (Catch all onX= patterns)
+  /on\w+\s*=\s*[\"\'\s]*[\w\s\(\)]+/gi,
+  
+  // Doms & Resources
+  /<iframe/gi,
   /<object/gi,
   /<embed/gi,
-  /vbscript:/gi,
+  /<applet/gi,
+  /<link[^>]+href[^>]+javascript:/gi,
+  /<form[^>]+action[^>]+javascript:/gi,
+  
+  // Encoding & Data URIs
+  /data:text\/html/gi,
+  /base64\s*,/gi,
+  
+  // Document Object Access
   /document\.cookie/gi,
   /document\.write/gi,
   /window\.location/gi,
+  
+  // SVG Injections
+  /<svg[^>]*onload/gi,
+  /<svg[^>]*onmouseover/gi,
+  
+  // Malformed Tags
   /<img[^>]+src[^>]*>/gi,
+  /<svg[^>]*>/gi,
 ];
 
 const DANGEROUS_TAGS = [
   "script", "iframe", "object",
   "embed", "applet", "meta",
   "link", "style", "base",
+  "form", "svg", "body", "html",
+  "video", "audio", "source"
 ];
 
 function detectXSS(input) {

@@ -5,6 +5,7 @@ import API_BASE from "../config";
 
 export default function useSimulator() {
   const [running, setRunning]   = useState(true);
+  const [status, setStatus]     = useState("loading"); // online, offline, loading
   const [threats, setThreats]   = useState([]);
   const [logs, setLogs]         = useState([]);
   const [counters, setCounters] = useState({ total: 0, blocked: 0, allowed: 0, latency: 0 });
@@ -48,14 +49,15 @@ export default function useSimulator() {
         }
       }
 
-      const rRes = await fetch(`${API_BASE}/rules`);
       if (rRes.ok) {
         const rData = await rRes.json();
         if (Array.isArray(rData)) setRules(rData);
       }
 
+      setStatus("online");
     } catch (e) {
       console.warn("Backend sync error:", e.message);
+      setStatus("offline");
     }
   };
 
@@ -72,5 +74,5 @@ export default function useSimulator() {
     return () => clearInterval(pollRef.current);
   }, [running]);
 
-  return { running, setRunning, threats, setThreats, logs, counters, history, rules, setRules };
+  return { running, setRunning, status, threats, setThreats, logs, counters, history, rules, setRules };
 }

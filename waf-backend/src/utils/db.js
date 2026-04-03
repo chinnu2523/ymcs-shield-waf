@@ -22,18 +22,21 @@ const DEFAULT_RULES = [
 let MEMORY_RULES = JSON.parse(JSON.stringify(DEFAULT_RULES));
 
 async function connectDB() {
+  // ── Pre-initialize rules for instant access ──────────────────
+  if (MEMORY_LOGS.length === 0) {
+    console.log("💿  Initializing WAF Persistence Layout...");
+  }
+
   try {
-    // Reduce timeout for faster fallback
     await mongoose.connect(MONGO_URI, { 
       serverSelectionTimeoutMS: 5000,
-      bufferCommands: false // Disable buffering to prevent hangs when DB is down
+      bufferCommands: false
     });
     isDBConnected = true;
-    console.log("✅ MongoDB Connected Successfully");
+    console.log("✅ MongoDB Connected");
   } catch (error) {
     isDBConnected = false;
-    console.error("❌ MongoDB Connection Failed:", error.message);
-    console.log("⚠️  Falling back to in-memory persistence layer");
+    console.log("⚠️  WAF: In-Memory Engine Active (MongoDB Offline)");
   }
 }
 

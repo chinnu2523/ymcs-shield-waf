@@ -146,7 +146,7 @@ export default function App() {
 
               {/* View Router */}
               <div className="relative z-20">
-                {activeView === "dashboard" && <Dashboard rules={rules} counters={counters} history={history} threats={threats} logs={logs} />}
+                {activeView === "dashboard" && <Dashboard rules={rules} counters={counters} history={history} threats={threats} logs={logs} status={status} />}
                 {activeView === "threats"   && <Threats threats={threats} setThreats={setThreats} setActiveView={setActiveView} />}
                 {activeView === "analytics" && <Analytics counters={counters} history={history} threats={threats} />}
                 {activeView === "rules"     && <RulesPage rules={rules} setRules={setRules} />}

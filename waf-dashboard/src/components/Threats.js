@@ -1,7 +1,36 @@
 import React from "react";
-import { AlertCircle, ShieldAlert, Globe, Clock, Filter, Search, ChevronRight, ShieldCheck, Activity, Target } from "lucide-react";
+import { AlertCircle, ShieldAlert, Globe, Clock, Filter, Search, ChevronRight, ShieldCheck, Activity, Target, Play } from "lucide-react";
 
 export default function Threats({ threats, setActiveView }) {
+  const [showMenu, setShowMenu] = React.useState(false);
+
+  const launchAttack = async (type) => {
+    setShowMenu(false);
+    const API_BASE_LOCAL = window.location.hostname === "localhost" ? "http://localhost:4000" : "https://ymcs-shield-backend.onrender.com";
+    
+    let url = `${API_BASE_LOCAL}/api/data`;
+    let options = { method: "GET" };
+
+    if (type === "SQLI") url = `${API_BASE_LOCAL}/api/users?id=1%20OR%201=1`;
+    if (type === "XSS") {
+      options = { 
+        method: "POST", 
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ comment: "<script>alert('WAF_TEST')</script>" })
+      };
+    }
+    if (type === "TRAVERSAL") url = `${API_BASE_LOCAL}/api/data?file=../../etc/passwd`;
+    if (type === "DOS") {
+      options = { 
+        method: "POST", 
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ data: "A".repeat(1.2 * 1024 * 1024) })
+      };
+    }
+
+    try { fetch(url, options); } catch (e) {}
+  };
+
   // Use real threats from props, fallback to empty array
   const displayThreats = (threats && threats.length > 0) ? threats.slice(0, 10) : [];
 
@@ -28,7 +57,41 @@ export default function Threats({ threats, setActiveView }) {
           </p>
         </div>
         
-        <div className="flex gap-3">
+        <div className="flex gap-3 relative">
+          <div className="relative">
+            <button 
+              onClick={() => setShowMenu(!showMenu)}
+              className="glass-panel px-6 py-2 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-primary border-primary/20 hover:border-primary/50 transition-all bg-primary/5 min-w-[200px] justify-center"
+            >
+              <Play size={14} fill="currentColor" />
+              {showMenu ? "Close Simulator" : "Launch Demonstration"}
+            </button>
+
+            {showMenu && (
+              <div className="absolute top-full mt-2 left-0 w-full z-50 glass-card p-2 border border-primary/20 animate-fade-in shadow-[0_10px_30px_rgba(0,0,0,0.4)] backdrop-blur-xl">
+                {[
+                  { id: "SQLI", label: "SQL Injection", desc: "Query Manipulation", icon: <Lock size={12} /> },
+                  { id: "XSS", label: "Cross-Site Scripting", desc: "Payload Execution", icon: <Search size={12} /> },
+                  { id: "TRAVERSAL", label: "Path Traversal", desc: "Filesystem Access", icon: <Globe size={12} /> },
+                  { id: "DOS", label: "Volumetric DDoS", desc: "Flood Simulation", icon: <Shield size={12} /> },
+                ].map((atk) => (
+                  <button
+                    key={atk.id}
+                    onClick={() => launchAttack(atk.id)}
+                    className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-primary/10 transition-all text-left group border border-transparent hover:border-primary/20 mb-1 last:mb-0"
+                  >
+                    <div className="p-2 rounded bg-black/40 border border-white/5 text-dim group-hover:text-primary transition-colors">
+                      {atk.icon}
+                    </div>
+                    <div>
+                      <div className="text-[10px] font-black text-white uppercase tracking-wider">{atk.label}</div>
+                      <div className="text-[8px] font-bold text-dim uppercase tracking-tighter opacity-50">{atk.desc}</div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           <div style={{
             padding: "10px 18px",
             background: "rgba(255,255,255,0.04)",
