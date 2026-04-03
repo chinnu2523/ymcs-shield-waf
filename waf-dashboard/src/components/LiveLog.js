@@ -82,8 +82,8 @@ export default function LiveLog({ logs }) {
                <p className="text-xs font-black uppercase tracking-[0.4em] text-primary">Synchronizing Neural Buffer...</p>
             </div>
           ) : (
-            <div className="flex flex-col">
-              {displayLogs.map((log) => (
+            <div className="flex flex-col" style={{ contain: "content" }}>
+              {displayLogs.slice(0, 50).map((log) => (
                 <div key={log.id} className="group flex items-center px-6 py-4 border-b border-white/5 hover:bg-white/5 transition-all">
                   {/* Forensic Columns */}
                   <div className="flex-1">

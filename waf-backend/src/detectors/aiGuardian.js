@@ -36,7 +36,7 @@ async function analyzeRequest(req) {
 
   // 2. AI Analysis with Timeout (Safety Net)
   const timeoutPromise = new Promise((_, reject) => 
-    setTimeout(() => reject(new Error("AI Analysis Timeout")), 5000)
+    setTimeout(() => reject(new Error("AI Analysis Timeout")), 2000)
   );
 
   const analysisPromise = (async () => {

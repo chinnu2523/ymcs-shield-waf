@@ -8,7 +8,8 @@ const aiGuardian     = require("./detectors/aiGuardian");
 const protocolVal    = require("./detectors/protocolValidator");
 const alerts         = require("./utils/alerts");
 const logger         = require("./utils/logger");
-const { saveLog, updateDailyStats, getRules } = require("./utils/db");
+const { updateDailyStats, getRules } = require("./utils/db");
+const { addLog } = require("./utils/logBuffer");
 
 // Configuration for Durability
 const MAX_PAYLOAD_SIZE = 1 * 1024 * 1024; // 1MB limit for body/query
@@ -146,7 +147,8 @@ async function saveToDB(req, ip, result, isBlocked = true) {
       alerts.sendAlert({ ...logData, payload: logData.payload }).catch(() => {});
     }
     
-    saveLog(logData).catch(err => console.error("Log save error:", err.message));
+    // Performance: Use buffered logging to reduce DB pressure
+    addLog(logData);
     updateDailyStats(isBlocked, logData.attackType);
   } catch (e) {}
 }
