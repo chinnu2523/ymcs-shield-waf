@@ -283,15 +283,36 @@ export default function PredictionPanel() {
         </div>
       </motion.div>
 
-      {/* ── System Status Cards ── */}
-      <motion.div variants={itemVariants}>
-        <div className="flex items-center gap-3 mb-4">
-          <Server size={14} className="text-primary" />
-          <h3 className="text-[10px] font-black text-white uppercase tracking-widest">Live System Status</h3>
-          <span className="text-[8px] font-black text-success border border-success/30 px-2 py-0.5 rounded animate-pulse">
-            AUTO-MONITOR
-          </span>
+      {/* ── System Status Cards with Live Scan Pulse ── */}
+      <motion.div variants={itemVariants} className="relative">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <Server size={14} className="text-primary" />
+            <h3 className="text-[10px] font-black text-white uppercase tracking-widest">Live System Status</h3>
+            <span className="text-[8px] font-black text-success border border-success/30 px-2 py-0.5 rounded animate-pulse">
+              AUTO-MONITOR ACTIVE
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[9px] font-black text-primary uppercase tracking-widest">Live Security Drone</span>
+            <div className="flex gap-1">
+               <motion.div animate={{ opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1.2, delay: 0 }} className="w-1.5 h-1.5 rounded-full bg-primary" />
+               <motion.div animate={{ opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1.2, delay: 0.4 }} className="w-1.5 h-1.5 rounded-full bg-primary" />
+               <motion.div animate={{ opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1.2, delay: 0.8 }} className="w-1.5 h-1.5 rounded-full bg-primary" />
+            </div>
+          </div>
         </div>
+
+        {/* Live Scanner Sweep Animation */}
+        <div className="absolute left-0 right-0 top-12 bottom-0 z-50 pointer-events-none overflow-hidden rounded-2xl">
+           <motion.div 
+             animate={{ x: ["-10%", "110%", "-10%"] }} 
+             transition={{ repeat: Infinity, duration: 10, ease: "linear" }}
+             className="w-1 h-full bg-primary/40 blur-[2px]"
+             style={{ boxShadow: "0 0 40px 10px rgba(0, 242, 255, 0.15)" }}
+           />
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <ServiceCard
             index={0}
