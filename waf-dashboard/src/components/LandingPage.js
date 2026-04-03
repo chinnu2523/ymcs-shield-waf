@@ -92,8 +92,12 @@ export default function LandingPage({ onEnter }) {
             <span style={{ color: "var(--primary)", fontWeight: 700 }}>Neural Engine v2.0</span>.
             Real-time threat intelligence &amp; automated perimeter defense.
           </p>
-          <div className="flex items-center justify-center gap-4 text-xs font-black uppercase text-dim tracking-widest mt-6 bg-white/5 border border-white/10 px-4 py-2 rounded-lg inline-flex">
-            <span>K.Meghana</span> • <span>R.Yamini</span> • <span>G.Charan</span> • <span>Srinidhi</span>
+          <div className="flex flex-col items-center gap-1.5 text-xs font-black uppercase text-dim tracking-widest mt-6 bg-white/5 border border-white/10 px-6 py-4 rounded-xl inline-flex">
+            <span className="text-white/60 mb-1" style={{ fontSize: 9 }}>Student Team</span>
+            <span>K. Meghana</span>
+            <span>R. Yamini</span>
+            <span>G. Charan</span>
+            <span>V V G D Srinidhi</span>
           </div>
         </div>
 

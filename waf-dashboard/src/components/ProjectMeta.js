@@ -2,7 +2,9 @@ import React from "react";
 
 export default function ProjectMeta() {
   const metadata = [
-    { label: "Student Lead",    value: "K. Meghana  •  R. Yamini  •  G. Charan",      icon: "👥" },
+    { label: "Student Lead",    value: "K. Meghana",                                   icon: "👥" },
+    { label: "Student Lead",    value: "R. Yamini",                                    icon: "👥" },
+    { label: "Student Lead",    value: "G. Charan",                                    icon: "👥" },
     { label: "Student Name",    value: "VISAKA VEERA GURU DATTA SRINIDHI",             icon: "👤" },
     { label: "Institution",     value: "KL UNIVERSITY",                                icon: "🏛️" },
     { label: "Project Title",   value: "YMCS Shield WAF Security Suite",               icon: "🛡️" },
