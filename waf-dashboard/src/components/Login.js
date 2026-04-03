@@ -23,9 +23,31 @@ export default function Login({ onSuccess, onBack }) {
         });
       }, 40);
     } else if (scanProgress >= 100 && isScanning) {
-      setGranted(true);
-      setStatus("Access Granted: Welcome VISAKA");
-      setTimeout(() => onSuccess(), 900);
+      // Execute Real Authentication!
+      fetch("https://ymcs-shield-backend.onrender.com/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        // Hardcoding Visaka's credentials for the simulation showcase
+        body: JSON.stringify({ username: "visaka", password: "visaka" })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.token) {
+          localStorage.setItem("waf_jwt_token", data.token);
+          setGranted(true);
+          setStatus("Access Granted: Welcome VISAKA");
+          setTimeout(() => onSuccess(), 900);
+        } else {
+          setStatus("Access Denied: Invalid Neural Signature");
+          setIsScanning(false);
+          setScanProgress(0);
+        }
+      })
+      .catch(() => {
+        setStatus("Access Denied: Core Offline");
+        setIsScanning(false);
+        setScanProgress(0);
+      });
     }
     return () => clearInterval(interval);
   }, [isScanning, scanProgress, onSuccess]);

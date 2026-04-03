@@ -8,8 +8,11 @@ const os          = require("os");
 const PDFDocument = require("pdfkit");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
+const { GoogleGenerativeAI } = require("@google/generative-ai");
+
 const { wafMiddleware, getStats, resetStats } = require("./src/waf");
-const { connectDB, Log, Stat, getLogs, getHistory, getRules, updateRule, resetData } = require("./src/utils/db");
+const { connectDB, Log, Stat, getLogs, getHistory, getRules, updateRule, resetData, BlockedIP } = require("./src/utils/db");
+const { login, seedAdminUser, verifyToken } = require("./src/utils/auth");
 const monitor = require("./src/utils/systemMonitor");
 require("dotenv").config();
 
@@ -37,11 +40,58 @@ app.use(express.urlencoded({ extended: true, limit: "1mb" }));
 app.use(wafMiddleware);
 
 // ── Dashboard API routes ──────────────────────────────────────────
-app.get("/api/stats", (req, res) => {
+
+// Auth Route
+app.post("/api/auth/login", express.json(), async (req, res) => {
+  try {
+    const { username, password } = req.body;
+    const result = await login(username, password);
+    res.json(result);
+  } catch (err) {
+    res.status(401).json({ error: err.message });
+  }
+});
+
+// Blocklist Management
+app.get("/api/blocklist", verifyToken, async (req, res) => {
+  try {
+    const records = await BlockedIP.find().sort("-blockedAt");
+    res.json(records);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch blocklist" });
+  }
+});
+
+app.post("/api/blocklist", verifyToken, express.json(), async (req, res) => {
+  try {
+    const { ip, reason } = req.body;
+    if (!ip) return res.status(400).json({ error: "IP address required" });
+    const blockRecord = await BlockedIP.findOneAndUpdate(
+      { ip },
+      { reason: reason || "Manual Administrator Block", blockedAt: Date.now() },
+      { upsert: true, new: true }
+    );
+    res.json({ success: true, record: blockRecord });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to add to blocklist" });
+  }
+});
+
+app.delete("/api/blocklist/:ip", verifyToken, async (req, res) => {
+  try {
+    const { ip } = req.params;
+    await BlockedIP.deleteOne({ ip });
+    res.json({ success: true, message: "IP removed from blocklist" });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to remove IP" });
+  }
+});
+
+app.get("/api/stats", verifyToken, (req, res) => {
   res.json(getStats());
 });
 
-app.post("/api/reset", async (req, res) => {
+app.post("/api/reset", verifyToken, async (req, res) => {
   try {
     await resetData();
     resetStats();
@@ -51,29 +101,31 @@ app.post("/api/reset", async (req, res) => {
   }
 });
 
-app.get("/api/history", async (req, res) => {
-  const history = await getHistory();
-  res.json(history);
-});
-
-app.get("/api/logs", async (req, res) => {
+app.get("/api/logs", verifyToken, async (req, res) => {
   const logs = await getLogs();
   res.json(logs);
 });
 
-app.get("/api/rules", async (req, res) => {
+app.get("/api/history", verifyToken, async (req, res) => {
+  const history = await getHistory();
+  res.json(history);
+});
+
+app.get("/api/rules", verifyToken, async (req, res) => {
   const rules = await getRules();
   res.json(rules);
 });
 
-app.post("/api/rules/:id", async (req, res) => {
-  const { id } = req.params;
-  await updateRule(id, req.body);
-  res.json({ success: true });
+app.put("/api/rules/:id", verifyToken, express.json(), async (req, res) => {
+  try {
+    await updateRule(req.params.id, req.body);
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: "Rule update failed" });
+  }
 });
 
-// ── User Dashboard Analytics ──────────────────────────────────────
-app.get("/api/userdashboard", async (req, res) => {
+app.post("/api/predictions", verifyToken, express.json(), async (req, res) => {
   try {
     const logs = await getLogs(200);
     
@@ -307,7 +359,7 @@ app.post("/api/data", (req, res) => {
 });
 
 // ── System Health (Full Detail) ──────────────────────────────────
-app.get("/api/system/health", (req, res) => {
+app.get("/api/system/health", verifyToken, (req, res) => {
   res.json(monitor.getHealthState());
 });
 
@@ -331,6 +383,7 @@ if (cluster.isPrimary) {
   const workers = Math.min(numCPUs, 4); // Max 4 workers for optimal Render free tier usage
 
   console.log(`\n🛡️  [Master Node] Initializing Neural Engine on ${workers} cores...`);
+  console.log(`🔑  Auth:    http://localhost:${PORT}/api/auth/login`);
   console.log(`📊  Stats:   http://localhost:${PORT}/api/stats`);
   console.log(`🔮  Predict: http://localhost:${PORT}/api/predictions`);
   console.log(`🤖  Monitor: http://localhost:${PORT}/api/system/health`);
@@ -348,7 +401,10 @@ if (cluster.isPrimary) {
 
 } else {
   // Worker processes initialize DB, Monitor, and Server
-  connectDB();
+  connectDB().then(() => {
+    // Only seed the user if database actually connects up
+    seedAdminUser();
+  });
   monitor.startMonitor();
 
   // Worker processes execute the main server listener

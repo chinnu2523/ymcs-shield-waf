@@ -71,9 +71,23 @@ const RuleSchema = new mongoose.Schema({
   detector: String
 });
 
+const BlockedIPSchema = new mongoose.Schema({
+  ip: { type: String, unique: true, required: true },
+  reason: { type: String, default: 'Manual Administrator Block' },
+  blockedAt: { type: Date, default: Date.now },
+});
+
+const UserSchema = new mongoose.Schema({
+  username: { type: String, unique: true, required: true },
+  passwordHash: { type: String, required: true },
+  role: { type: String, default: 'admin' },
+});
+
 const Log = mongoose.model("Log", RequestSchema);
 const Stat = mongoose.model("Stat", StatSchema);
 const Rule = mongoose.model("Rule", RuleSchema);
+const BlockedIP = mongoose.model("BlockedIP", BlockedIPSchema);
+const User = mongoose.model("User", UserSchema);
 
 async function saveLog(logData) {
   // Always save to memory for speed and fallback
@@ -183,4 +197,4 @@ async function resetData() {
   }
 }
 
-module.exports = { connectDB, Log, Stat, Rule, saveLog, getLogs, updateDailyStats, getHistory, getRules, updateRule, resetData };
+module.exports = { connectDB, Log, Stat, Rule, BlockedIP, User, saveLog, getLogs, updateDailyStats, getHistory, getRules, updateRule, resetData };

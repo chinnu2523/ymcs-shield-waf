@@ -8,7 +8,7 @@ const aiGuardian     = require("./detectors/aiGuardian");
 const protocolVal    = require("./detectors/protocolValidator");
 const alerts         = require("./utils/alerts");
 const logger         = require("./utils/logger");
-const { updateDailyStats, getRules } = require("./utils/db");
+const { updateDailyStats, getRules, BlockedIP } = require("./utils/db");
 const { addLog } = require("./utils/logBuffer");
 const monitor        = require("./utils/systemMonitor");
 
@@ -48,7 +48,17 @@ async function wafMiddleware(req, res, next) {
   console.log(`🔍 [WAF] Request: ${req.method} ${req.url} from ${ip}`);
 
   try {
-    // ── ADAPTIVE GATE: Check auto-block list before any other check ──────
+    // ── MANUAL GATE: Check persistent DB Blocklist BEFORE adaptive engine ──
+    if (BlockedIP) {
+      const manualBlock = await BlockedIP.findOne({ ip });
+      if (manualBlock) {
+        stats.blocked++;
+        saveToDB(req, ip, { detected: true, type: "Manual Block", explanation: `Admin Block: ${manualBlock.reason}`, riskScore: 100 });
+        return res.status(403).json({ error: "Forbidden", message: "IP explicitly blocked by Administrator" });
+      }
+    }
+
+    // ── ADAPTIVE GATE: Check auto-block list ──────
     if (monitor.isIPBlocked(ip)) {
       stats.blocked++;
       saveToDB(req, ip, { detected: true, type: "Auto-Block (Adaptive)", explanation: "IP flagged by adaptive engine for repeated attacks", riskScore: 100 });

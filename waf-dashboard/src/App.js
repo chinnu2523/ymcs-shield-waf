@@ -12,7 +12,20 @@ import Reporting      from "./components/Reporting";
 import LiveLog        from "./components/LiveLog";
 import CyberBackground from "./components/CyberBackground";
 import LandingPage    from "./components/LandingPage";
-import Login          from "./components/Login";
+import Login from "./components/Login";
+
+// ── Global Fetch Override for JWT Injection ──
+const originalFetch = window.fetch;
+window.fetch = async function () {
+  let [resource, config] = arguments;
+  const token = localStorage.getItem('waf_jwt_token');
+  if (token && typeof resource === 'string' && resource.includes('/api/')) {
+    if (!config) config = {};
+    if (!config.headers) config.headers = {};
+    config.headers['Authorization'] = `Bearer ${token}`;
+  }
+  return originalFetch.call(this, resource, config);
+};
 import ProjectMeta    from "./components/ProjectMeta";
 import UserDashboard  from "./components/UserDashboard";
 import PredictionPanel from "./components/PredictionPanel";

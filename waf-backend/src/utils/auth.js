@@ -1,0 +1,56 @@
+const jwt = require("jsonwebtoken");
+const bcrypt = require("bcryptjs");
+const { User } = require("./db");
+
+const JWT_SECRET = process.env.JWT_SECRET || "ymcs-shield-super-secret-key-2026";
+const ADMIN_USERNAME = process.env.ADMIN_USERNAME || "visaka";
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "visaka"; // default password
+
+async function seedAdminUser() {
+  try {
+    const existingAdmin = await User.findOne({ username: ADMIN_USERNAME });
+    if (!existingAdmin) {
+      const passwordHash = await bcrypt.hash(ADMIN_PASSWORD, 10);
+      await User.create({ username: ADMIN_USERNAME, passwordHash, role: "admin" });
+      console.log("🔐 Admin user seeded successfully");
+    }
+  } catch (error) {
+    console.error("Error seeding admin user:", error.message);
+  }
+}
+
+async function login(username, password) {
+  const user = await User.findOne({ username });
+  if (!user) {
+    throw new Error("Invalid credentials");
+  }
+
+  const isMatch = await bcrypt.compare(password, user.passwordHash);
+  if (!isMatch) {
+    throw new Error("Invalid credentials");
+  }
+
+  const token = jwt.sign({ id: user._id, username: user.username, role: user.role }, JWT_SECRET, {
+    expiresIn: "1h",
+  });
+
+  return { token, user: { username: user.username, role: user.role } };
+}
+
+function verifyToken(req, res, next) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({ error: "Unauthorized access. Valid token required." });
+  }
+
+  const token = authHeader.split(" ")[1];
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    req.user = decoded;
+    next();
+  } catch (err) {
+    return res.status(403).json({ error: "Invalid or expired token." });
+  }
+}
+
+module.exports = { seedAdminUser, login, verifyToken };
