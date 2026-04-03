@@ -92,13 +92,6 @@ export default function LandingPage({ onEnter }) {
             <span style={{ color: "var(--primary)", fontWeight: 700 }}>Neural Engine v2.0</span>.
             Real-time threat intelligence &amp; automated perimeter defense.
           </p>
-          <div className="flex flex-col items-center gap-1.5 text-xs font-black uppercase text-dim tracking-widest mt-6 bg-white/5 border border-white/10 px-6 py-4 rounded-xl inline-flex">
-            <span className="text-white/60 mb-1" style={{ fontSize: 9 }}>Student Team</span>
-            <span>K. Meghana</span>
-            <span>R. Yamini</span>
-            <span>G. Charan</span>
-            <span>V V G D Srinidhi</span>
-          </div>
         </div>
 
         {/* CTA Button */}
@@ -163,11 +156,20 @@ export default function LandingPage({ onEnter }) {
             onMouseEnter={e => { e.currentTarget.style.opacity = 1; }}
             onMouseLeave={e => { e.currentTarget.style.opacity = 0.55; }}
           >
-            <div className="text-right flex flex-col gap-1">
-              <span style={{ fontSize: 9, fontWeight: 900, color: "var(--text-dim)", textTransform: "uppercase", letterSpacing: "0.25em" }}>
-                Student Lead
+            <div className="text-right flex flex-col gap-1.5">
+              <span style={{ fontSize: 9, fontWeight: 900, color: "var(--text-dim)", textTransform: "uppercase", letterSpacing: "0.25em", marginBottom: 4 }}>
+                Student Team
               </span>
-              <span style={{ fontSize: 13, fontWeight: 900, color: "#fff", letterSpacing: "0.15em", textTransform: "uppercase", fontStyle: "italic" }}>
+              <span style={{ fontSize: 11, fontWeight: 900, color: "#fff", letterSpacing: "0.15em", textTransform: "uppercase", fontStyle: "italic" }}>
+                K. Meghana
+              </span>
+              <span style={{ fontSize: 11, fontWeight: 900, color: "#fff", letterSpacing: "0.15em", textTransform: "uppercase", fontStyle: "italic" }}>
+                R. Yamini
+              </span>
+              <span style={{ fontSize: 11, fontWeight: 900, color: "#fff", letterSpacing: "0.15em", textTransform: "uppercase", fontStyle: "italic" }}>
+                G. Charan
+              </span>
+              <span style={{ fontSize: 11, fontWeight: 900, color: "#fff", letterSpacing: "0.15em", textTransform: "uppercase", fontStyle: "italic" }}>
                 V V G D SRINIDHI
               </span>
             </div>
