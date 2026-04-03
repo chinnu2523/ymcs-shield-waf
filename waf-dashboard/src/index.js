@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
 import App from './App';
+import ErrorBoundary from './components/ErrorBoundary';
 
 // ── Global Fetch Override for JWT Injection ──
 const originalFetch = window.fetch;
@@ -15,7 +16,6 @@ window.fetch = async function () {
   }
   return originalFetch.call(this, resource, config);
 };
-import ErrorBoundary from './components/ErrorBoundary';
 
 // ── Standard React Mount ──
 // We remove the shadow DOM isolation to allow global index.css to reach all components.

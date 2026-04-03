@@ -10,6 +10,7 @@ import SettingsPage   from "./components/SettingsPage";
 import AIAnalyst      from "./components/AIAnalyst";
 import Reporting      from "./components/Reporting";
 import LiveLog        from "./components/LiveLog";
+import BlocklistManager from "./components/BlocklistManager";
 import CyberBackground from "./components/CyberBackground";
 import LandingPage    from "./components/LandingPage";
 import Login from "./components/Login";
@@ -167,6 +168,7 @@ export default function App() {
                     {activeView === "ai"             && <AIAnalyst threats={threats} counters={counters} />}
                     {activeView === "reporting"      && <Reporting />}
                     {activeView === "livelog"        && <LiveLog logs={logs} />}
+                    {activeView === "blocklist"      && <BlocklistManager />}
                     {activeView === "settings"       && <SettingsPage />}
                   </motion.div>
                 </AnimatePresence>

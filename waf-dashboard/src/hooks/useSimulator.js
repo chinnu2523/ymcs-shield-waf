@@ -23,6 +23,12 @@ export default function useSimulator() {
       const headers = token ? { "Authorization": `Bearer ${token}` } : {};
 
       const sRes = await fetch(`${API_BASE}/stats`, { headers });
+      if (sRes.status === 401) {
+        localStorage.removeItem("waf_jwt_token");
+        window.location.reload();
+        return;
+      }
+      
       const sData = await sRes.json();
       setCounters(prev => ({ ...prev, ...sData }));
 

@@ -252,22 +252,24 @@ export default function Login({ onSuccess, onBack }) {
         <div className="flex flex-col items-center justify-center gap-6 mt-8 relative z-20">
           {/* Real Inputs for Admin Login */}
           <div className="flex flex-col gap-4 w-64 mb-4">
-            <input 
-              type="text" 
-              placeholder="ADMINISTRATOR ID" 
-              value={username}
-              onChange={e => setUsername(e.target.value)}
-              className="bg-black/40 border border-primary/20 outline-none text-white text-xs font-mono px-4 py-3 text-center uppercase tracking-widest placeholder:text-dim/40 rounded focus:border-primary transition-colors"
-              disabled={isScanning}
-            />
-            <input 
-              type="password" 
-              placeholder="ENCRYPTION KEY" 
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              className="bg-black/40 border border-primary/20 outline-none text-white text-xs font-mono px-4 py-3 text-center uppercase tracking-widest placeholder:text-dim/40 rounded focus:border-primary transition-colors"
-              disabled={isScanning}
-            />
+              <input 
+                type="text" 
+                placeholder="ADMINISTRATOR ID" 
+                value={username}
+                onChange={e => setUsername(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && startScan()}
+                className="bg-black/40 border border-primary/20 outline-none text-white text-xs font-mono px-4 py-3 text-center uppercase tracking-widest placeholder:text-dim/40 rounded focus:border-primary transition-colors"
+                disabled={isScanning}
+              />
+              <input 
+                type="password" 
+                placeholder="ENCRYPTION KEY" 
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && startScan()}
+                className="bg-black/40 border border-primary/20 outline-none text-white text-xs font-mono px-4 py-3 text-center uppercase tracking-widest placeholder:text-dim/40 rounded focus:border-primary transition-colors"
+                disabled={isScanning}
+              />
           </div>
         </div>
 

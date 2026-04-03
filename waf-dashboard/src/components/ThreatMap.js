@@ -1,105 +1,97 @@
 import React from "react";
-import { Globe, MapPin } from "lucide-react";
+import { ComposableMap, Geographies, Geography, Marker } from "react-simple-maps";
+import { ShieldAlert } from "lucide-react";
 
 /**
- * ThreatMap provides a visual representation of attack origins.
- * Plotted dynamically onto a Global SVG via country correlation or IP-based heuristic positioning.
+ * ThreatMap provides an authentic SVG geographical visualization 
+ * of cyber-attacks powered by react-simple-maps.
  */
+
+// Geographic dataset stored natively in our build
+const geoUrl = "/world-110m.json";
+
 export default function ThreatMap({ threats }) {
-  // Global Geolocation Projection Baseline
-  const countryCoords = {
-    "US": { x: 80, y: 50 },
-    "IN": { x: 260, y: 70 },
-    "RU": { x: 280, y: 35 },
-    "CN": { x: 300, y: 60 },
-    "BR": { x: 130, y: 100 },
-    "GB": { x: 185, y: 40 },
-    "DE": { x: 200, y: 40 },
-    "FR": { x: 195, y: 45 },
-    "JP": { x: 340, y: 55 },
-    "KP": { x: 325, y: 55 }
+  // ISO-based precise coordinate centroids [longitude, latitude]
+  const coordinates = {
+    "US": [-95.7129, 37.0902],
+    "IN": [78.9629, 20.5937],
+    "RU": [105.3188, 61.5240],
+    "CN": [104.1954, 35.8617],
+    "BR": [-51.9253, -14.2350],
+    "GB": [-3.4359, 55.3781],
+    "DE": [10.4515, 51.1657],
+    "FR": [2.2137, 46.2276],
+    "JP": [138.2529, 36.2048],
+    "KP": [127.5101, 40.3399],
   };
 
-  // Heuristic coordinate generator for dynamic real-time IP plotting
-  const getCoords = (t) => {
-    if (countryCoords[t.country]) return countryCoords[t.country];
-    if (t.country === "Localhost" || !t.ip) return null;
-    
-    // Deterministic pseudo-random generation based on IP octets
-    const octets = t.ip.split('.').map(Number);
-    if (octets.length !== 4) return { x: 200, y: 100 }; // Center default
-    
-    return {
-      x: 40 + (octets[0] + octets[1]) % 320,
-      y: 30 + (octets[2] + octets[3]) % 140
-    };
+  // Convert IP to a deterministic [long, lat] backup if country matches fail
+  const fallbackCoords = (ip) => {
+    if (!ip) return [0, 0];
+    const octets = ip.split('.').map(Number);
+    if (octets.length !== 4) return [0, 0];
+    const longitude = -180 + ((octets[0] + octets[1]) * 1.40625) % 360;
+    const latitude = -90 + ((octets[2] + octets[3]) * 0.703125) % 180;
+    return [longitude, latitude];
   };
 
   const activeMarkers = threats
-    .map(t => ({ ...t, coords: getCoords(t) }))
-    .filter(t => t.coords !== null)
-    .slice(0, 10); // Display top 10 recent vectors
+    .filter(t => t.country !== "Localhost")
+    .map(t => ({
+      ...t,
+      coords: coordinates[t.country] || fallbackCoords(t.ip)
+    }))
+    .slice(0, 15);
 
   return (
-    <div className="glass-panel p-6 h-full relative overflow-hidden group hover-tilt stagger-3">
-      {/* Internal Grid Scan */}
-      <div className="absolute inset-0 pointer-events-none opacity-0 group-hover:opacity-10 transition-opacity">
-        <div className="w-full h-[1px] bg-primary shadow-[0_0_10px_var(--primary-glow)] animate-scanline"></div>
+    <div className="glass-panel h-full relative overflow-hidden group hover-tilt stagger-3 flex flex-col items-center justify-center pt-8">
+      
+      {/* Decorative Title Block */}
+      <div className="absolute top-4 left-6 z-10 flex items-center gap-3">
+        <ShieldAlert className="text-danger animate-pulse" size={14} />
+        <h3 className="text-[10px] font-black uppercase tracking-widest text-white/90">
+          Global Threat Vector Live Map
+        </h3>
       </div>
 
-      <div className="flex items-center gap-3 mb-6 relative z-10">
-        <div className="p-2 bg-primary/10 rounded-lg border border-primary/20">
-            <Globe size={20} className="text-primary animate-pulse" />
-        </div>
-        <h3 className="font-black text-xs uppercase tracking-[0.3em] text-white">Global Threat Matrix</h3>
-      </div>
+      <ComposableMap 
+        projection="geoMercator" 
+        style={{ width: "100%", height: "100%", maxHeight: "250px" }}
+      >
+        <Geographies geography={geoUrl}>
+          {({ geographies }) =>
+            geographies.map((geo) => (
+              <Geography
+                key={geo.rsmKey}
+                geography={geo}
+                fill="rgba(0, 242, 255, 0.05)"
+                stroke="var(--primary)"
+                strokeWidth={0.5}
+                style={{
+                  default: { outline: "none" },
+                  hover: { outline: "none", fill: "rgba(0, 242, 255, 0.2)" },
+                  pressed: { outline: "none" },
+                }}
+              />
+            ))
+          }
+        </Geographies>
 
-      <div className="relative w-full aspect-[1.8/1] bg-primary/5 rounded-2xl border border-white/5 overflow-hidden shadow-inner flex items-center justify-center">
-        {/* Authentic SVG World Map Background */}
-        <div 
-          className="absolute inset-0 opacity-20 pointer-events-none" 
-          style={{ 
-            backgroundImage: "url('https://upload.wikimedia.org/wikipedia/commons/e/ec/World_map_blank_without_borders.svg')",
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-            filter: "invert(1) sepia(1) hue-rotate(180deg) saturate(5) brightness(0.8)"
-          }}
-        />
-
-        {/* Global Markers */}
-        {activeMarkers.map((t, idx) => {
-          const { x, y } = t.coords;
-          return (
-            <div 
-              key={`marker-${idx}`}
-              className="absolute group/marker"
-              style={{ left: `${(x / 400) * 100}%`, top: `${(y / 200) * 100}%` }}
-            >
-              <div className="w-3 h-3 bg-neon-red rounded-full relative shadow-[0_0_20px_var(--danger)] animate-ping opacity-40"></div>
-              <div className="w-3 h-3 bg-neon-red rounded-full absolute top-0 left-0 shadow-[0_0_15px_var(--danger)]"></div>
-              
-              <div className="absolute top-6 left-1/2 -translate-x-1/2 bg-bg-dark/95 backdrop-blur-xl p-3 rounded-xl text-[10px] hidden group-hover/marker:block z-30 whitespace-nowrap border border-neon-red/30 shadow-2xl">
-                <div className="flex flex-col gap-1">
-                    <span className="font-black text-neon-red uppercase tracking-widest">{t.attackType}</span>
-                    <span className="text-white font-bold opacity-80">Origin: {t.country}</span>
-                    <span className="text-dim text-[8px] font-mono">{t.ip}</span>
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      <div className="mt-6 space-y-2 relative z-10">
-        {activeMarkers.map((t, i) => (
-          <div key={i} className="flex items-center justify-between text-[10px] glass-panel border-white/5 p-2 px-3 hover:bg-white/5 transition-colors stagger-3">
-            <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-neon-red animate-pulse shadow-[0_0_8px_var(--neon-red)]"></span>
-                <span className="text-white font-bold tracking-tight">{t.ip}</span>
-            </div>
-            <span className="text-dim font-black uppercase text-[8px] tracking-widest">{t.country}</span>
-          </div>
+        {activeMarkers.map((marker, idx) => (
+          <Marker key={`marker-${idx}`} coordinates={marker.coords}>
+            <g className="animate-ping" style={{ opacity: 0.6 }}>
+              <circle r={3} fill="var(--danger)" />
+            </g>
+            <circle r={1.5} fill="#ff0033" />
+          </Marker>
         ))}
+      </ComposableMap>
+
+      {/* Decorative Overlay */}
+      <div className="absolute bottom-4 right-6 text-right">
+        <div className="text-[9px] font-mono text-danger font-bold uppercase tracking-widest">
+          Active Mitigations: {activeMarkers.length}
+        </div>
       </div>
     </div>
   );

@@ -22,6 +22,7 @@ export default function Sidebar({ activeView, setActiveView }) {
     { id: "userdashboard",  icon: <Users size={18} />,           label: "User Intel",      badge: "NEW",  section: "main" },
     { id: "predictions",    icon: <Brain size={18} />,           label: "AI Predictions",  badge: "AI",   section: "main" },
     { id: "rules",          icon: <ShieldCheck size={18} />,     label: "Security Rules",  badge: null,   section: "tools" },
+    { id: "blocklist",      icon: <ShieldAlert size={18} />,     label: "Blocklist",       badge: "CTRL", section: "tools" },
     { id: "ai",             icon: <MessageSquare size={18} />,   label: "AI Analyst",      badge: "BETA", section: "tools" },
     { id: "reporting",      icon: <FileText size={18} />,        label: "Reporting",       badge: null,   section: "tools" },
     { id: "livelog",        icon: <Terminal size={18} />,        label: "Forensic Logs",   badge: "LIVE", section: "tools" },
@@ -102,6 +103,20 @@ export default function Sidebar({ activeView, setActiveView }) {
           <span className="text-[10px] font-black text-dim uppercase tracking-[0.25em] opacity-40">Tools</span>
         </div>
         {toolItems.map(item => <NavItem key={item.id} item={item} />)}
+
+        {/* ── Sign Out Button ── */}
+        <div className="mt-8 mb-4 px-2">
+          <button
+            onClick={() => {
+              localStorage.removeItem("waf_jwt_token");
+              window.location.reload();
+            }}
+            className="flex items-center justify-center gap-2 w-full p-3 rounded-lg border border-danger/30 bg-danger/10 text-danger hover:bg-danger hover:text-white transition-all duration-300 shadow-[0_0_15px_rgba(255,0,51,0.1)] group"
+          >
+            <ShieldAlert size={16} className="group-hover:animate-pulse" />
+            <span className="text-[10px] font-black uppercase tracking-widest">Sign Out / Lock</span>
+          </button>
+        </div>
       </nav>
 
       {/* ── Sidebar Footer ── */}
