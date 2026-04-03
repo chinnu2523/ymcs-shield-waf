@@ -24,6 +24,21 @@ const stats = {
 
 async function wafMiddleware(req, res, next) {
   const start = process.hrtime();
+  
+  // Track latency for ALL requests (Blocked or Allowed)
+  res.on("finish", () => {
+    const diff = process.hrtime(start);
+    const durationMs = (diff[0] * 1e3 + diff[1] * 1e-6);
+    const finalMs = Math.max(1, Math.round(durationMs));
+    
+    if (stats.latency === 0) {
+      stats.latency = finalMs;
+    } else {
+      // 10-point moving average for smoothness
+      stats.latency = Math.round((stats.latency * 0.9) + (finalMs * 0.1));
+    }
+  });
+
   stats.total++;
   
   let ip = req.headers['x-forwarded-for'] || req.ip || req.connection.remoteAddress;
@@ -110,15 +125,6 @@ async function wafMiddleware(req, res, next) {
     stats.allowed++;
     saveToDB(req, ip, { status: "ALLOWED" }, false);
     
-    res.on("finish", () => {
-      const diff = process.hrtime(start);
-      const durationMs = (diff[0] * 1e3 + diff[1] * 1e-6);
-      if (stats.latency === 0) {
-        stats.latency = Math.round(durationMs);
-      } else {
-        stats.latency = Math.round((stats.latency * 0.9) + (durationMs * 0.1));
-      }
-    });
 
     next();
   } catch (globalError) {
