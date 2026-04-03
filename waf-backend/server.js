@@ -7,6 +7,7 @@ const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 const { wafMiddleware, getStats, resetStats } = require("./src/waf");
 const { connectDB, Log, Stat, getLogs, getHistory, getRules, updateRule, resetData } = require("./src/utils/db");
+const monitor = require("./src/utils/systemMonitor");
 require("dotenv").config();
 
 const app  = express();
@@ -14,6 +15,10 @@ const PORT = 4000;
 
 // Initialize Database
 connectDB();
+
+// ── Start Autonomous Monitor (after DB init) ──────────────────────
+// Runs health checks every 30s, auto-reconnects DB, adapts security rules
+monitor.startMonitor();
 
 // ── Basic middleware ──────────────────────────────────────────────
 app.use(helmet());
@@ -300,22 +305,31 @@ app.post("/api/data", (req, res) => {
   res.json({ message: "Payload processed" });
 });
 
-// ── Health check ──────────────────────────────────────────────────
+// ── System Health (Full Detail) ──────────────────────────────────
+app.get("/api/system/health", (req, res) => {
+  res.json(monitor.getHealthState());
+});
+
+// ── Health check (quick) ─────────────────────────────────────────
 app.get("/health", (req, res) => {
-  const stats = getStats();
+  const health = monitor.getHealthState();
   res.json({ 
-    status: "WAF is online", 
-    uptime: process.uptime(),
-    stats,
-    version: "2.0.4"
+    status:   health.backend.status === "ONLINE" ? "WAF is online" : "WAF degraded",
+    uptime:   process.uptime(),
+    backend:  health.backend.status,
+    database: health.database.status,
+    waf:      health.waf.status,
+    stats:    getStats(),
+    version:  "2.0.4"
   });
 });
 
 // ── Start server ──────────────────────────────────────────────────
 app.listen(PORT, () => {
   console.log(`\n🛡️  YMCS Shield Backend running on http://localhost:${PORT}`);
-  console.log(`📊  Stats:  http://localhost:${PORT}/api/stats`);
-  console.log(`📋  Logs:   http://localhost:${PORT}/api/logs`);
+  console.log(`📊  Stats:   http://localhost:${PORT}/api/stats`);
+  console.log(`📋  Logs:    http://localhost:${PORT}/api/logs`);
   console.log(`🔮  Predict: http://localhost:${PORT}/api/predictions`);
-  console.log(`❤️   Health: http://localhost:${PORT}/health\n`);
+  console.log(`🤖  Monitor: http://localhost:${PORT}/api/system/health`);
+  console.log(`❤️   Health:  http://localhost:${PORT}/health\n`);
 });

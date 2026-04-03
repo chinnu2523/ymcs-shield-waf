@@ -10,6 +10,7 @@ const alerts         = require("./utils/alerts");
 const logger         = require("./utils/logger");
 const { updateDailyStats, getRules } = require("./utils/db");
 const { addLog } = require("./utils/logBuffer");
+const monitor        = require("./utils/systemMonitor");
 
 // Configuration for Durability
 const MAX_PAYLOAD_SIZE = 1 * 1024 * 1024; // 1MB limit — checked via Content-Length header before body is parsed
@@ -47,6 +48,13 @@ async function wafMiddleware(req, res, next) {
   console.log(`🔍 [WAF] Request: ${req.method} ${req.url} from ${ip}`);
 
   try {
+    // ── ADAPTIVE GATE: Check auto-block list before any other check ──────
+    if (monitor.isIPBlocked(ip)) {
+      stats.blocked++;
+      saveToDB(req, ip, { detected: true, type: "Auto-Block (Adaptive)", explanation: "IP flagged by adaptive engine for repeated attacks", riskScore: 100 });
+      return res.status(403).json({ error: "Forbidden", message: "IP temporarily blocked by adaptive security engine" });
+    }
+
     // 0. Payload Size Check (Durability - DoS Protection)
     // Read Content-Length header BEFORE body parsing occurs (WAF runs before express.json)
     const contentLength = parseInt(req.headers["content-length"] || "0", 10);
@@ -94,6 +102,7 @@ async function wafMiddleware(req, res, next) {
           if (result.detected) {
             stats.blocked++;
             saveToDB(req, ip, { ...result, riskScore: 100 });
+            monitor.recordAttack(result.type || result.attackType, ip); // Feed adaptive engine
             console.log(`🛡️  [WAF BLOCKED] ${detector.type} detected on ${req.url}`);
             return res.status(403).json({ error: "Forbidden", message: result.message || `${detector.type} detected` });
           }
