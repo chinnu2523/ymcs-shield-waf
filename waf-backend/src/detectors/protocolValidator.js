@@ -8,9 +8,6 @@ const SUSPICIOUS_UA_PATTERNS = [
   /gobuster/i,
   /burp/i,
   /metasploit/i,
-  /python-requests/i,
-  /curl/i,
-  /wget/i,
   /libwww/i,
 ];
 

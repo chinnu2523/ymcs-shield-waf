@@ -75,6 +75,7 @@ const BlockedIPSchema = new mongoose.Schema({
   ip: { type: String, unique: true, required: true },
   reason: { type: String, default: 'Manual Administrator Block' },
   blockedAt: { type: Date, default: Date.now },
+  expiresAt: { type: Date, index: { expires: 0 } } // TTL index for temporary blocks
 });
 
 const UserSchema = new mongoose.Schema({

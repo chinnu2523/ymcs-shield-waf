@@ -13,6 +13,7 @@
 const mongoose = require("mongoose");
 const os       = require("os");
 const https    = require("https"); // Added to keep Render live server awake
+const { BlockedIP } = require("./db");
 
 // ── Health State (single source of truth) ─────────────────────────────────
 const healthState = {
@@ -33,8 +34,8 @@ const adaptiveState = {
   attackWindowStart: Date.now(),
   WINDOW_MS: 5 * 60 * 1000, // 5-minute analysis window
 
-  // Temporary IP blocklist (auto-expires after 15 min)
-  tempBlocklist: new Map(), // ip -> { until, reason, count }
+  // Local state for auto-block threshold tracking (Memory disjoint across cluster is acceptable for counters)
+  attackCounters: new Map(), // ip -> { count }
   BLOCK_DURATION_MS: 15 * 60 * 1000, // 15 minutes
 
   // Auto-adaptations log (last 20 actions)
@@ -170,20 +171,27 @@ function recordAttack(attackType, ip) {
 
   // 2. Track per-IP hits for temp blocklist
   if (ip && ip !== "::1" && ip !== "127.0.0.1" && !ip.startsWith("::ffff:127.")) {
-    const existing = adaptiveState.tempBlocklist.get(ip) || { count: 0, until: 0, reason: "" };
+    const existing = adaptiveState.attackCounters.get(ip) || { count: 0 };
     existing.count++;
+    adaptiveState.attackCounters.set(ip, existing);
 
-    // AUTO-HEAL: Auto-block IP after 10 blocked hits in the window
-    if (existing.count >= 10) {
-      const until = Date.now() + adaptiveState.BLOCK_DURATION_MS;
-      adaptiveState.tempBlocklist.set(ip, { count: existing.count, until, reason: attackType });
+    // AUTO-HEAL: Auto-block IP after 10 blocked hits
+    // Trigger only exactly at 10 to prevent slamming DB
+    if (existing.count === 10) {
+      const until = new Date(Date.now() + adaptiveState.BLOCK_DURATION_MS);
+      if (BlockedIP) {
+        BlockedIP.findOneAndUpdate(
+          { ip },
+          { reason: `Adaptive Security Auto-Block: ${attackType}`, blockedAt: new Date(), expiresAt: until },
+          { upsert: true }
+        ).catch(e => console.error("Temp block persist error:", e.message));
+      }
+      
       logAdaptation(
         `Auto-Blocked IP: ${ip}`,
         `WARNING: ${existing.count} attacks in 5-min window`,
-        `Blocked for 15 minutes. Primary vector: ${attackType}`
+        `Blocked globally via DB for 15 minutes. Primary vector: ${attackType}`
       );
-    } else {
-      adaptiveState.tempBlocklist.set(ip, { ...existing, reason: attackType });
     }
   }
 }
@@ -231,18 +239,8 @@ function runAdaptiveAnalysis() {
     );
   }
 
-  // 4. Expire temp blocklist entries
-  const now = Date.now();
-  for (const [ip, entry] of adaptiveState.tempBlocklist.entries()) {
-    if (entry.until > 0 && now > entry.until) {
-      adaptiveState.tempBlocklist.delete(ip);
-      logAdaptation(
-        `Auto-Unblocked IP: ${ip}`,
-        "INFO: Temporary block expired",
-        "15-minute ban lifted. IP reinstated."
-      );
-    }
-  }
+  // 4. Clear local attack counters periodically to reset threshold memory
+  adaptiveState.attackCounters.clear();
 }
 
 // ── Main Monitor Tick ─────────────────────────────────────────────────────
@@ -275,23 +273,12 @@ function getHealthState() {
     ...healthState,
     adaptive: {
       rateLimitThreshold: adaptiveState.rateLimitThreshold,
-      blockScoreThreshold: adaptiveState.blockScoreThreshold,
-      tempBlockedIPs: adaptiveState.tempBlocklist.size,
-      attackWindowSummary: { ...adaptiveState.attackWindow },
-      windowStarted: new Date(adaptiveState.attackWindowStart).toISOString(),
+      windowAttacks: Object.values(adaptiveState.attackWindow).reduce((a, b) => a + b, 0),
+      recentLogs: adaptiveState.adaptationLog.slice(0, 5),
     },
     adaptationLog: adaptiveState.adaptationLog,
     checkedAt: new Date().toISOString(),
   };
-}
-
-function isIPBlocked(ip) {
-  const entry = adaptiveState.tempBlocklist.get(ip);
-  if (!entry) return false;
-  if (entry.until > 0 && Date.now() < entry.until) return true;
-  // Expired — clean up
-  adaptiveState.tempBlocklist.delete(ip);
-  return false;
 }
 
 function getAdaptiveThreshold() {
@@ -321,7 +308,6 @@ module.exports = {
   startMonitor,
   getHealthState,
   recordAttack,
-  isIPBlocked,
   getAdaptiveThreshold,
   logAdaptation,
 };

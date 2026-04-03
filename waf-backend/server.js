@@ -8,8 +8,6 @@ const os          = require("os");
 const PDFDocument = require("pdfkit");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
-const { GoogleGenerativeAI } = require("@google/generative-ai");
-
 const { wafMiddleware, getStats, resetStats } = require("./src/waf");
 const { connectDB, Log, Stat, getLogs, getHistory, getRules, updateRule, resetData, BlockedIP, Setting } = require("./src/utils/db");
 const { login, seedAdminUser, verifyToken } = require("./src/utils/auth");
@@ -445,14 +443,31 @@ if (cluster.isPrimary) {
   console.log(`🤖  Monitor: http://localhost:${PORT}/api/system/health`);
   console.log(`❤️   Health:  http://localhost:${PORT}/health\n`);
 
+  const { checkLocal } = require("./src/detectors/rateLimit");
+
   for (let i = 0; i < workers; i++) {
-    cluster.fork();
+    const worker = cluster.fork();
+    
+    // Core clustering synchronization! Route rate-limit checks centrally.
+    worker.on('message', (msg) => {
+      if (msg.type === "RATELIMIT_REQ") {
+        const result = checkLocal(msg.ip); // Master processes locally
+        worker.send({ type: "RATELIMIT_RES", id: msg.id, result });
+      }
+    });
   }
 
   // Durability: Auto-revive dead workers immediately
   cluster.on('exit', (worker, code, signal) => {
     console.warn(`⚠️  [Master Node] Worker ${worker.process.pid} died (signal: ${signal}). Reviving...`);
-    cluster.fork();
+    const newWorker = cluster.fork();
+    newWorker.on('message', (msg) => {
+      if (msg.type === "RATELIMIT_REQ") {
+        const { checkLocal } = require("./src/detectors/rateLimit");
+        const result = checkLocal(msg.ip);
+        newWorker.send({ type: "RATELIMIT_RES", id: msg.id, result });
+      }
+    });
   });
 
 } else {

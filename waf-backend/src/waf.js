@@ -50,19 +50,20 @@ async function wafMiddleware(req, res, next) {
   try {
     // ── MANUAL GATE: Check persistent DB Blocklist BEFORE adaptive engine ──
     if (BlockedIP) {
-      const manualBlock = await BlockedIP.findOne({ ip });
-      if (manualBlock) {
+      const now = new Date();
+      const blockRecord = await BlockedIP.findOne({ 
+        ip, 
+        $or: [
+          { expiresAt: { $exists: false } }, 
+          { expiresAt: { $gt: now } }
+        ] 
+      });
+      
+      if (blockRecord) {
         stats.blocked++;
-        saveToDB(req, ip, { detected: true, type: "Manual Block", explanation: `Admin Block: ${manualBlock.reason}`, riskScore: 100 });
-        return res.status(403).json({ error: "Forbidden", message: "IP explicitly blocked by Administrator" });
+        saveToDB(req, ip, { detected: true, type: "WAF IP-Ban", explanation: `Blocked: ${blockRecord.reason}`, riskScore: 100 });
+        return res.status(403).json({ error: "Forbidden", message: "IP explicitly blocked by system policy." });
       }
-    }
-
-    // ── ADAPTIVE GATE: Check auto-block list ──────
-    if (monitor.isIPBlocked(ip)) {
-      stats.blocked++;
-      saveToDB(req, ip, { detected: true, type: "Auto-Block (Adaptive)", explanation: "IP flagged by adaptive engine for repeated attacks", riskScore: 100 });
-      return res.status(403).json({ error: "Forbidden", message: "IP temporarily blocked by adaptive security engine" });
     }
 
     // 0. Payload Size Check (Durability - DoS Protection)
@@ -96,7 +97,7 @@ async function wafMiddleware(req, res, next) {
 
     // 2. Rate limit check (RL-205)
     if (getRule("RL-205").enabled) {
-      const rateResult = rateLimit.check(ip);
+      const rateResult = await rateLimit.checkAsync(ip);
       if (rateResult.limited) {
         stats.blocked++;
         saveToDB(req, ip, { ...rateResult, riskScore: 100 });
