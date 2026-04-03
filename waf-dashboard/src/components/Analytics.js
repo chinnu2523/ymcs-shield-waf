@@ -3,7 +3,7 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { Activity, Shield, TrendingUp, AlertTriangle, Cpu, Globe, PieChart, Zap } from "lucide-react";
 import ThreatMap from "./ThreatMap";
 
-export default function Analytics({ history, threats }) {
+export default function Analytics({ counters, history, threats }) {
   // Map history arrays to Recharts format
   const chartData = (history?.allowed || []).map((val, i) => ({
     time: `T-${20 - i}`,
@@ -11,11 +11,24 @@ export default function Analytics({ history, threats }) {
     blocked: history?.blocked?.[i] || 0
   }));
 
-  const mockAttackTypes = [
-    { name: "SQLi", value: 45, color: "var(--neon-blue)" },
-    { name: "XSS", value: 30, color: "var(--secondary)" },
-    { name: "DDoS", value: 15, color: "var(--neon-red)" },
-    { name: "RCE", value: 10, color: "var(--warning)" },
+  // Compute real attack type distribution from live threat data
+  const typeFreq = {};
+  (threats || []).forEach(t => {
+    const type = t.type || "Unknown";
+    typeFreq[type] = (typeFreq[type] || 0) + 1;
+  });
+  const LIVE_COLORS = ["var(--neon-blue)", "var(--secondary)", "var(--neon-red)", "var(--warning)", "var(--primary)"];
+  const liveAttackTypes = Object.entries(typeFreq)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([name, value], i) => ({ name, value, color: LIVE_COLORS[i % LIVE_COLORS.length] }));
+  
+  // Fallback demo data when no threats yet
+  const attackTypes = liveAttackTypes.length > 0 ? liveAttackTypes : [
+    { name: "SQLi",   value: 0, color: "var(--neon-blue)" },
+    { name: "XSS",    value: 0, color: "var(--secondary)" },
+    { name: "DDoS",   value: 0, color: "var(--neon-red)"  },
+    { name: "Other",  value: 0, color: "var(--warning)"   },
   ];
 
   return (
@@ -140,7 +153,7 @@ export default function Analytics({ history, threats }) {
 
             <div style={{ width: "100%", height: 250 }}>
               <ResponsiveContainer>
-                <BarChart data={mockAttackTypes} layout="vertical" barSize={32}>
+                <BarChart data={attackTypes} layout="vertical" barSize={32}>
                   <XAxis type="number" hide />
                   <YAxis 
                     dataKey="name" 
@@ -148,14 +161,14 @@ export default function Analytics({ history, threats }) {
                     axisLine={false} 
                     tickLine={false}
                     tick={{ fill: "var(--text-main)", fontSize: 11, fontWeight: 900 }}
-                    width={60}
+                    width={70}
                   />
                   <Tooltip 
                     cursor={{ fill: "rgba(255,255,255,0.03)" }}
                     contentStyle={{ backgroundColor: "rgba(5,7,10,0.95)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "8px" }}
                   />
                   <Bar dataKey="value" radius={[0, 4, 4, 0]}>
-                    {mockAttackTypes.map((entry, index) => (
+                    {attackTypes.map((entry, index) => (
                       <Cell key={index} fill={entry.color} fillOpacity={0.8} />
                     ))}
                   </Bar>

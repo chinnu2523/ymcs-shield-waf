@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Activity, Shield, AlertCircle, Cpu, Globe, Lock, Search, Zap, Terminal, Flame, RotateCcw } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { BACKEND_BASE } from "../config";
 import API_BASE from "../config";
 
 export default function Dashboard({ rules = [], counters, threats, logs, status = "online" }) {
@@ -30,7 +31,7 @@ export default function Dashboard({ rules = [], counters, threats, logs, status 
     
     setRebooting(true);
     try {
-      await fetch(`${API_BASE.replace("/api", "")}/api/reset`, { method: "POST" });
+      await fetch(`${API_BASE}/reset`, { method: "POST" });
       setTimeout(() => {
         window.location.reload();
       }, 4000);
@@ -46,10 +47,10 @@ export default function Dashboard({ rules = [], counters, threats, logs, status 
     // Cache buster to ensure the WAF actually processes the request
     const entropy = Math.random().toString(36).substring(7);
     const cb = `_t=${Date.now()}-${entropy}`;
-    let url = `${API_BASE.replace("/api", "")}`;
+    let url = BACKEND_BASE; // Use clean base URL without /api fragility
     let options = { method: "GET" };
 
-    if (type === "SQLI") url += `/api/users?id=1%20OR%201=1&${cb}`;
+    if (type === "SQLI")     url += `/api/users?id=1%20OR%201=1&${cb}`;
     if (type === "XSS") {
       url += `/api/data?${cb}`;
       options = { 
@@ -73,7 +74,7 @@ export default function Dashboard({ rules = [], counters, threats, logs, status 
       if (res.status === 403 || res.status === 413 || res.status === 429) {
         setSimulating({ type, status: "MITIGATED" });
       } else {
-        setSimulating({ type, status: "FAILED" });
+        setSimulating({ type, status: "FAILED", code: res.status });
       }
     } catch (e) {
       setSimulating({ type, status: "ERROR" });
@@ -87,14 +88,16 @@ export default function Dashboard({ rules = [], counters, threats, logs, status 
     status: l.status || "UNKNOWN",
     ip: l.ip || "127.0.0.1",
     path: l.path || "/",
+    type: l.attackType || "none",
     isBlocked: l.status === "BLOCKED"
   })).slice(0, 7) : [];
 
+  // Null-safe stat values
   const stats = [
-    { label: "Total Ingress",       value: counters?.total || 0,   unit: "REQS",  icon: <Activity size={18} />, color: "var(--primary)" },
-    { label: "Mitigated Attacks",  value: counters?.blocked || 0, unit: "BLOCKED", icon: <Shield size={18} />, color: "var(--danger)" },
-    { label: "Mean Latency",       value: counters?.latency || 0, unit: "MS",      icon: <Zap size={18} />,    color: "var(--warning)" },
-    { label: "Active Threats",     value: threats?.length || 0,   unit: "LIVE",    icon: <AlertCircle size={18} />, color: "var(--secondary)" },
+    { label: "Total Ingress",      value: counters?.total   ?? 0, unit: "REQS",    icon: <Activity size={18} />,     color: "var(--primary)" },
+    { label: "Mitigated Attacks",  value: counters?.blocked ?? 0, unit: "BLOCKED", icon: <Shield size={18} />,       color: "var(--danger)" },
+    { label: "Mean Latency",       value: counters?.latency ?? 0, unit: "MS",      icon: <Zap size={18} />,          color: "var(--warning)" },
+    { label: "Active Threats",     value: threats?.length   ?? 0, unit: "LIVE",    icon: <AlertCircle size={18} />,  color: "var(--secondary)" },
   ];
 
   const getLayerStatus = (id) => {
@@ -108,17 +111,24 @@ export default function Dashboard({ rules = [], counters, threats, logs, status 
     };
     const ruleId = ruleMapping[id];
     const rule = rules.find(r => r.id === ruleId);
-    return rule?.enabled ? { status: "Active", health: 100 } : { status: "Standby", health: 0 };
+    return rule?.enabled !== undefined ? { status: rule.enabled ? "Active" : "Standby", health: rule.enabled ? 100 : 0 } : { status: "Active", health: 100 };
   };
 
   const layers = [
-    { id: "SQL-INJ", name: "SQL Injection Filter", ...getLayerStatus("SQL-INJ"),  icon: <Lock size={14} /> },
-    { id: "XSS-SHD", name: "XSS Shield Layer",     ...getLayerStatus("XSS-SHD"),  icon: <Search size={14} /> },
-    { id: "RAT-LIM", name: "Dynamic Rate Limiter", ...getLayerStatus("RAT-LIM"),  icon: <Activity size={14} /> },
-    { id: "BOT-DET", name: "Neural Bot Detector",  ...getLayerStatus("BOT-DET"),  icon: <Cpu size={14} /> },
+    { id: "SQL-INJ", name: "SQL Injection Filter",  ...getLayerStatus("SQL-INJ"), icon: <Lock size={14} /> },
+    { id: "XSS-SHD", name: "XSS Shield Layer",      ...getLayerStatus("XSS-SHD"), icon: <Search size={14} /> },
+    { id: "RAT-LIM", name: "Dynamic Rate Limiter",  ...getLayerStatus("RAT-LIM"), icon: <Activity size={14} /> },
+    { id: "BOT-DET", name: "Neural Bot Detector",   ...getLayerStatus("BOT-DET"), icon: <Cpu size={14} /> },
     { id: "DDO-GRD", name: "Volumetric DDoS Guard", ...getLayerStatus("DDO-GRD"), icon: <Shield size={14} /> },
-    { id: "PTH-GRD", name: "Path Traversal Filter", ...getLayerStatus("PTH-GRD"), status: "Active", icon: <Terminal size={14} />, health: 100 },
+    { id: "PTH-GRD", name: "Path Traversal Filter", ...getLayerStatus("PTH-GRD"), icon: <Terminal size={14} /> },
   ];
+
+  const statusColors = {
+    "MITIGATED": "var(--success)",
+    "FAILED":    "var(--danger)",
+    "ERROR":     "var(--warning)",
+    "DISPATCHING": "var(--primary)"
+  };
 
   return (
     <motion.div variants={containerVariants} initial="hidden" animate="visible" className="flex flex-col gap-8">
@@ -139,17 +149,17 @@ export default function Dashboard({ rules = [], counters, threats, logs, status 
               boxShadow: `0 0 8px ${status === "online" ? "var(--success)" : "var(--danger)"}`, 
               display: "inline-block" 
             }} className="animate-pulse" />
-            {status === "online" ? "Shield Synchronized • Node-Alpha-01" : "Connection Lost"}
+            {status === "online" ? "Shield Synchronized • Node-Alpha-01" : "Connection Lost — Check Backend"}
           </p>
         </motion.div>
 
         <motion.div variants={itemVariants} className="flex items-center gap-4">
           <motion.button 
             onClick={handleRestart}
-            whileHover={{ scale: 1.05, backgroundColor: "rgba(255, 51, 51, 0.2)", boxShadow: "0 0 25px rgba(255, 51, 51, 0.4)", x: [0, -1, 1, -1, 1, 0] }}
+            whileHover={{ scale: 1.05, backgroundColor: "rgba(255, 51, 51, 0.2)", boxShadow: "0 0 25px rgba(255, 51, 51, 0.4)" }}
             whileTap={{ scale: 0.95 }}
             animate={{ boxShadow: ["0 0 5px rgba(255, 51, 51, 0.2)", "0 0 20px rgba(255, 51, 51, 0.5)", "0 0 5px rgba(255, 51, 51, 0.2)"] }}
-            transition={{ boxShadow: { repeat: Infinity, duration: 2 }, x: { duration: 0.2, repeat: Infinity } }}
+            transition={{ boxShadow: { repeat: Infinity, duration: 2 } }}
             style={{ background: "rgba(255, 51, 51, 0.1)", borderColor: "rgba(255, 51, 51, 0.3)", color: "var(--danger)" }}
             className="glass-panel px-6 py-2 flex items-center gap-3 text-[11px] font-black uppercase tracking-[0.2em] h-[46px] rounded-xl border"
           >
@@ -161,14 +171,20 @@ export default function Dashboard({ rules = [], counters, threats, logs, status 
         </motion.div>
       </div>
 
+      {/* ── Attack Simulation Modal ── */}
       <AnimatePresence>
         {simulating && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm">
-            <motion.div initial={{ scale: 0.8 }} animate={{ scale: 1 }} className="glass-card p-10 border-2 border-primary/50 flex flex-col items-center gap-6">
+            <motion.div initial={{ scale: 0.8 }} animate={{ scale: 1 }} className="glass-card p-10 border-2 flex flex-col items-center gap-6" style={{ borderColor: `${statusColors[simulating.status] || "var(--primary)"}60` }}>
               <div className="w-20 h-20 rounded-full border-4 border-t-primary animate-spin flex items-center justify-center">
-                <Shield className="text-primary animate-pulse" size={32} />
+                <Shield style={{ color: statusColors[simulating.status] || "var(--primary)" }} size={32} className="animate-pulse" />
               </div>
-              <h2 className="text-2xl font-black text-white uppercase tracking-widest">{simulating.type}: {simulating.status}</h2>
+              <h2 className="text-2xl font-black text-white uppercase tracking-widest">
+                {simulating.type}: <span style={{ color: statusColors[simulating.status] || "var(--primary)" }}>{simulating.status}</span>
+              </h2>
+              {simulating.code && (
+                <p className="text-dim text-xs font-mono">HTTP {simulating.code} — WAF did not intercept</p>
+              )}
             </motion.div>
           </motion.div>
         )}
@@ -185,7 +201,7 @@ export default function Dashboard({ rules = [], counters, threats, logs, status 
             <div className="relative z-10">
               <h4 className="text-[10px] font-black text-dim uppercase tracking-widest mb-1">{s.label}</h4>
               <div className="flex items-baseline gap-2">
-                <span className="text-3xl font-black text-white">{s.value.toLocaleString()}</span>
+                <span className="text-3xl font-black text-white">{(s.value ?? 0).toLocaleString()}</span>
                 <span className="text-[10px] font-black" style={{ color: s.color }}>{s.unit}</span>
               </div>
             </div>
@@ -207,7 +223,9 @@ export default function Dashboard({ rules = [], counters, threats, logs, status 
                     <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-black/40 text-primary">{l.icon}</div>
                     <span className="text-xs font-bold text-white uppercase tracking-wider">{l.name}</span>
                   </div>
-                  <span className="text-[9px] font-black text-success border border-success/30 px-2 py-0.5 rounded">{l.status}</span>
+                  <span className={`text-[9px] font-black border px-2 py-0.5 rounded ${l.status === "Active" ? "text-success border-success/30" : "text-dim border-white/10"}`}>
+                    {l.status}
+                  </span>
                 </div>
                 <div className="h-1 bg-black/40 rounded-full overflow-hidden">
                   <motion.div initial={{ width: 0 }} animate={{ width: `${l.health}%` }} className="h-full bg-success" style={{ boxShadow: "0 0 10px var(--success-glow)" }} />
@@ -217,17 +235,26 @@ export default function Dashboard({ rules = [], counters, threats, logs, status 
           </div>
         </motion.div>
 
-        {/* Stress Test */}
+        {/* Stress Test + Activity Feed */}
         <motion.div variants={itemVariants} className="col-span-12 lg:col-span-4 flex flex-col gap-6">
           <div className="glass-card p-6 border-b-2 border-primary/20">
             <h3 className="text-white font-black uppercase tracking-widest text-sm mb-6 flex items-center gap-2">
               <Flame size={18} className="text-primary" /> Security Stress Test
             </h3>
             <div className="grid grid-cols-2 gap-3">
-              {[{id:"SQLI", label:"SQL Injection"}, {id:"XSS", label:"XSS Shield"}, {id:"TRAVERSAL", label:"Path Trans"}, {id:"DOS", label:"DDoS Spikes"}].map((atk) => (
-                <button key={atk.id} onClick={() => triggerAttack(atk.id)} className="p-4 rounded-xl border border-white/5 bg-white/2 hover:bg-primary/10 hover:border-primary/30 transition-all text-left">
-                  <div className="text-[10px] font-black text-white uppercase tracking-widest">{atk.label}</div>
-                  <div className="text-[8px] font-bold text-dim uppercase mt-1">Verification Unit</div>
+              {[
+                { id: "SQLI",     label: "SQL Injection", desc: "Query Bypass" },
+                { id: "XSS",      label: "XSS Shield",    desc: "Payload Inject" },
+                { id: "TRAVERSAL",label: "Path Trans.",    desc: "FS Access" },
+                { id: "DOS",      label: "DDoS Spike",     desc: "Flood Sim" }
+              ].map((atk) => (
+                <button
+                  key={atk.id}
+                  onClick={() => triggerAttack(atk.id)}
+                  className="p-4 rounded-xl border border-white/5 bg-white/2 hover:bg-primary/10 hover:border-primary/30 transition-all text-left group active:scale-95"
+                >
+                  <div className="text-[10px] font-black text-white uppercase tracking-widest group-hover:text-primary transition-colors">{atk.label}</div>
+                  <div className="text-[8px] font-bold text-dim uppercase mt-1">{atk.desc}</div>
                 </button>
               ))}
             </div>
@@ -235,14 +262,22 @@ export default function Dashboard({ rules = [], counters, threats, logs, status 
 
           {/* Activity Feed */}
           <div className="glass-card p-6 flex-1 border-b-2 border-primary/20">
-            <h3 className="text-white font-black uppercase tracking-widest text-sm mb-6 flex items-center gap-2">
+            <h3 className="text-white font-black uppercase tracking-widest text-sm mb-4 flex items-center gap-2">
               <Terminal size={18} className="text-primary" /> Activity Feed
+              <span className="ml-auto text-[8px] font-black text-success border border-success/30 px-2 py-0.5 rounded animate-pulse">LIVE</span>
             </h3>
-            <div className="flex flex-col gap-3">
-              {displayLogs.map((log) => (
-                <div key={log.id} className="flex justify-between p-3 rounded-lg bg-white/2 border border-white/5">
-                  <span className="text-[10px] font-mono font-black text-white">{log.ip}</span>
-                  <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded ${log.isBlocked ? "bg-danger/20 text-danger" : "bg-success/20 text-success"}`}>{log.status}</span>
+            <div className="flex flex-col gap-2">
+              {displayLogs.length === 0 ? (
+                <p className="text-dim text-[10px] font-mono opacity-40 text-center py-4">No activity yet...</p>
+              ) : displayLogs.map((log) => (
+                <div key={log.id} className="flex justify-between items-center p-3 rounded-lg bg-white/2 border border-white/5 hover:bg-white/4 transition-all">
+                  <div className="flex flex-col">
+                    <span className="text-[10px] font-mono font-black text-white">{log.ip}</span>
+                    <span className="text-[8px] font-mono text-dim opacity-50">{log.path}</span>
+                  </div>
+                  <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded ${log.isBlocked ? "bg-danger/20 text-danger border border-danger/20" : "bg-success/20 text-success border border-success/20"}`}>
+                    {log.status}
+                  </span>
                 </div>
               ))}
             </div>
@@ -250,6 +285,7 @@ export default function Dashboard({ rules = [], counters, threats, logs, status 
         </motion.div>
       </div>
 
+      {/* Rebooting Overlay */}
       <AnimatePresence>
         {rebooting && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 z-[9999] bg-black/99 backdrop-blur-2xl flex flex-col items-center justify-center p-10">

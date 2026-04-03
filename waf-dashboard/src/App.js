@@ -1,19 +1,22 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import useSimulator from "./hooks/useSimulator";
-import Sidebar      from "./components/sidebar";
-import Dashboard    from "./components/Dashboard";
-import Threats      from "./components/Threats";
-import Analytics    from "./components/Analytics";
-import RulesPage    from "./components/RulesPage";
-import SettingsPage from "./components/SettingsPage";
-import AIAnalyst    from "./components/AIAnalyst";
-import Reporting    from "./components/Reporting";
-import LiveLog      from "./components/LiveLog";
+import Sidebar        from "./components/sidebar";
+import Dashboard      from "./components/Dashboard";
+import Threats        from "./components/Threats";
+import Analytics      from "./components/Analytics";
+import RulesPage      from "./components/RulesPage";
+import SettingsPage   from "./components/SettingsPage";
+import AIAnalyst      from "./components/AIAnalyst";
+import Reporting      from "./components/Reporting";
+import LiveLog        from "./components/LiveLog";
 import CyberBackground from "./components/CyberBackground";
-import LandingPage  from "./components/LandingPage";
-import Login        from "./components/Login";
-import ProjectMeta  from "./components/ProjectMeta";
+import LandingPage    from "./components/LandingPage";
+import Login          from "./components/Login";
+import ProjectMeta    from "./components/ProjectMeta";
+import UserDashboard  from "./components/UserDashboard";
+import PredictionPanel from "./components/PredictionPanel";
+
 
 const VIEW_STATES = {
   LANDING: "LANDING",
@@ -155,14 +158,16 @@ export default function App() {
                     exit={{ opacity: 0, y: -15, filter: "blur(10px)" }}
                     transition={{ duration: 0.3, ease: "easeInOut" }}
                   >
-                    {activeView === "dashboard" && <Dashboard rules={rules} counters={counters} history={history} threats={threats} logs={logs} status={status} />}
-                    {activeView === "threats"   && <Threats threats={threats} setThreats={setThreats} setActiveView={setActiveView} />}
-                    {activeView === "analytics" && <Analytics counters={counters} history={history} threats={threats} />}
-                    {activeView === "rules"     && <RulesPage rules={rules} setRules={setRules} />}
-                    {activeView === "ai"        && <AIAnalyst threats={threats} counters={counters} />}
-                    {activeView === "reporting" && <Reporting />}
-                    {activeView === "livelog"   && <LiveLog logs={logs} />}
-                    {activeView === "settings"  && <SettingsPage />}
+                    {activeView === "dashboard"     && <Dashboard rules={rules} counters={counters} history={history} threats={threats} logs={logs} status={status} />}
+                    {activeView === "threats"        && <Threats threats={threats} setThreats={setThreats} setActiveView={setActiveView} />}
+                    {activeView === "analytics"      && <Analytics counters={counters} history={history} threats={threats} />}
+                    {activeView === "userdashboard"  && <UserDashboard />}
+                    {activeView === "predictions"    && <PredictionPanel />}
+                    {activeView === "rules"          && <RulesPage rules={rules} setRules={setRules} />}
+                    {activeView === "ai"             && <AIAnalyst threats={threats} counters={counters} />}
+                    {activeView === "reporting"      && <Reporting />}
+                    {activeView === "livelog"        && <LiveLog logs={logs} />}
+                    {activeView === "settings"       && <SettingsPage />}
                   </motion.div>
                 </AnimatePresence>
               </div>

@@ -12,7 +12,7 @@ const { updateDailyStats, getRules } = require("./utils/db");
 const { addLog } = require("./utils/logBuffer");
 
 // Configuration for Durability
-const MAX_PAYLOAD_SIZE = 1 * 1024 * 1024; // 1MB limit for body/query
+const MAX_PAYLOAD_SIZE = 1 * 1024 * 1024; // 1MB limit — checked via Content-Length header before body is parsed
 
 // Stats tracker (synchronized with DB daily)
 const stats = {
@@ -48,11 +48,12 @@ async function wafMiddleware(req, res, next) {
 
   try {
     // 0. Payload Size Check (Durability - DoS Protection)
-    const payloadSize = (JSON.stringify(req.body || {}).length) + (JSON.stringify(req.query || {}).length);
-    if (payloadSize > MAX_PAYLOAD_SIZE) {
+    // Read Content-Length header BEFORE body parsing occurs (WAF runs before express.json)
+    const contentLength = parseInt(req.headers["content-length"] || "0", 10);
+    if (contentLength > MAX_PAYLOAD_SIZE) {
       stats.blocked++;
-      saveToDB(req, ip, { detected: true, type: "DoS Protection", explanation: "Payload size too large", riskScore: 100 });
-      return res.status(413).json({ error: "Payload Too Large" });
+      saveToDB(req, ip, { detected: true, type: "DoS Protection", explanation: `Payload size ${contentLength} bytes exceeds 1MB limit`, riskScore: 100 });
+      return res.status(413).json({ error: "Payload Too Large", maxBytes: MAX_PAYLOAD_SIZE });
     }
 
     // Fetch dynamic rules
@@ -78,6 +79,7 @@ async function wafMiddleware(req, res, next) {
     }
 
     // 3. Rule-based checks (SQLi, XSS, Path Traversal, Command Injection)
+    // req.body is now parsed by express.json before WAF runs, so it's available here
     const detectors = [
       { id: "RL-101", fn: sqlInjection.scanRequest, type: "SQL Injection" },
       { id: "RL-102", fn: xss.scanRequest,          type: "XSS" },
@@ -129,7 +131,7 @@ async function wafMiddleware(req, res, next) {
 
     next();
   } catch (globalError) {
-    console.error("CRITICAL WAF FAILURE:", globalError.message);
+    console.error("CRITICAL WAF FAILURE:", globalError.message, "\nStack:", globalError.stack);
     // Durability: If the WAF itself has a critical failure, we allow the request but log the error
     // This prevents the WAF from becoming a single point of failure for the application
     next();

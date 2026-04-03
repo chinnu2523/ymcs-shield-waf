@@ -8,7 +8,7 @@ export default function useSimulator() {
   const [status, setStatus]     = useState("loading"); // online, offline, loading
   const [threats, setThreats]   = useState([]);
   const [logs, setLogs]         = useState([]);
-  const [counters, setCounters] = useState({ total: 0, blocked: 0, allowed: 0, latency: 0 });
+  const [counters, setCounters] = useState({ total: 0, blocked: 0, allowed: 0, latency: 0, blockRate: "0.0" });
   const [history, setHistory]   = useState({
     allowed: Array(20).fill(0),
     blocked: Array(20).fill(0),
