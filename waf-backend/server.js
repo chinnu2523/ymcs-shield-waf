@@ -2,6 +2,9 @@ const express = require("express");
 const cors    = require("cors");
 const helmet  = require("helmet");
 const morgan  = require("morgan");
+const compression = require("compression");
+const cluster     = require("cluster");
+const os          = require("os");
 const PDFDocument = require("pdfkit");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
@@ -11,18 +14,16 @@ const monitor = require("./src/utils/systemMonitor");
 require("dotenv").config();
 
 const app  = express();
-const PORT = 4000;
+const PORT = process.env.PORT || 4000;
 
-// Initialize Database
-connectDB();
+// Initialize database logic moved to workers
 
-// ── Start Autonomous Monitor (after DB init) ──────────────────────
-// Runs health checks every 30s, auto-reconnects DB, adapts security rules
-monitor.startMonitor();
+// Monitor start logic moved to workers
 
 // ── Basic middleware ──────────────────────────────────────────────
 app.use(helmet());
 app.use(cors({ origin: "*" })); // Allow all for demo
+app.use(compression());         // GZIP payload compression for performance
 app.use(morgan("dev"));
 app.set("trust proxy", true); // Trust forwarded-for headers for IP identification
 
@@ -324,12 +325,64 @@ app.get("/health", (req, res) => {
   });
 });
 
-// ── Start server ──────────────────────────────────────────────────
-app.listen(PORT, () => {
-  console.log(`\n🛡️  YMCS Shield Backend running on http://localhost:${PORT}`);
+// ── Start server (Cluster Mode for Durability) ─────────────────────
+if (cluster.isPrimary) {
+  const numCPUs = os.cpus().length || 1;
+  const workers = Math.min(numCPUs, 4); // Max 4 workers for optimal Render free tier usage
+
+  console.log(`\n🛡️  [Master Node] Initializing Neural Engine on ${workers} cores...`);
   console.log(`📊  Stats:   http://localhost:${PORT}/api/stats`);
-  console.log(`📋  Logs:    http://localhost:${PORT}/api/logs`);
   console.log(`🔮  Predict: http://localhost:${PORT}/api/predictions`);
   console.log(`🤖  Monitor: http://localhost:${PORT}/api/system/health`);
   console.log(`❤️   Health:  http://localhost:${PORT}/health\n`);
-});
+
+  for (let i = 0; i < workers; i++) {
+    cluster.fork();
+  }
+
+  // Durability: Auto-revive dead workers immediately
+  cluster.on('exit', (worker, code, signal) => {
+    console.warn(`⚠️  [Master Node] Worker ${worker.process.pid} died (signal: ${signal}). Reviving...`);
+    cluster.fork();
+  });
+
+} else {
+  // Worker processes initialize DB, Monitor, and Server
+  connectDB();
+  monitor.startMonitor();
+
+  // Worker processes execute the main server listener
+  const server = app.listen(PORT, () => {
+    console.log(`[Worker Node ${process.pid}] Online and processing requests`);
+  });
+
+  // Socket Timeout Protection (Slowloris Mitigation)
+  server.setTimeout(30000); // 30s timeout
+
+  // Graceful Shutdown Hooks
+  const gracefulShutdown = () => {
+    console.log(`\n🛑 [Worker Node ${process.pid}] SIGTERM received. Closing gracefully...`);
+    server.close(async () => {
+      try {
+        const mongoose = require("mongoose");
+        if (mongoose.connection.readyState === 1) {
+          await mongoose.connection.close();
+          console.log(`[Worker Node ${process.pid}] MongoDB safely disconnected.`);
+        }
+        process.exit(0);
+      } catch (err) {
+        console.error("Error during graceful shutdown", err);
+        process.exit(1);
+      }
+    });
+    
+    // Fallback terminator if MongoDB connection hangs
+    setTimeout(() => {
+      console.error(`[Worker Node ${process.pid}] Force closing after timeout.`);
+      process.exit(1);
+    }, 10000);
+  };
+
+  process.on('SIGTERM', gracefulShutdown);
+  process.on('SIGINT', gracefulShutdown);
+}
