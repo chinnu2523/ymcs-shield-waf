@@ -88,8 +88,8 @@ async function wafMiddleware(req, res, next) {
     }
 
     // 1.5 Geo-Blocking Check
-    const geoResult = geoBlocking.scan(ip);
-    if (geoResult.detected) {
+    const geoResult = geoBlocking.check(ip);
+    if (geoResult.blocked) {
       stats.blocked++;
       saveToDB(req, ip, { type: "Geo-Blocking", explanation: geoResult.message, riskScore: 100, country: geoResult.country });
       return res.status(403).json({ error: "Forbidden", message: geoResult.message });
