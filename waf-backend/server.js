@@ -437,8 +437,15 @@ app.get("/api/system/health", verifyToken, (req, res) => {
 // ── Start server (Cluster Mode for Durability) ─────────────────────
 if (cluster.isPrimary) {
   const numCPUs = os.cpus().length || 1;
-  const workers = Math.min(numCPUs, 4); // Max 4 workers for optimal Render free tier usage
+  
+  // Render Free Tier Optimization: Force 1 worker to prevent OOM (512MB limit)
+  const isRender = process.env.RENDER === "true";
+  const workers = isRender ? 1 : Math.min(numCPUs, 4); 
 
+  if (isRender) {
+    console.log("🚀 [Resource Guard] Render Free Tier Detected. Scaling to 1 Worker for stability.");
+  }
+  
   console.log(`\n🛡️  [Master Node] Initializing Neural Engine on ${workers} cores...`);
   console.log(`🔑  Auth:    http://localhost:${PORT}/api/auth/login`);
   console.log(`📊  Stats:   http://localhost:${PORT}/api/stats`);
