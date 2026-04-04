@@ -48,9 +48,6 @@ app.set("trust proxy", true); // Trust forwarded-for headers for IP identificati
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true, limit: "1mb" }));
 
-// ── WAF sits in front of route handlers ──────────────────────────
-app.use(wafMiddleware);
-
 // ── Dashboard API routes ──────────────────────────────────────────
 
 // ── CORE SYSTEM ENDPOINTS (Accessible prior to complex WAF logic) ──
@@ -63,11 +60,11 @@ app.get("/health", (req, res) => {
     database: health.database.status,
     waf:      health.waf.status,
     stats:    getStats(),
-    version:  "2.0.5-STABLE"
+    version:  "2.0.6-SECURE"
   });
 });
 
-// Auth Route
+// Auth Route (Bypass WAF body scanning to allow special chars in passwords)
 app.post("/api/auth/login", async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -77,6 +74,9 @@ app.post("/api/auth/login", async (req, res) => {
     res.status(401).json({ error: err.message });
   }
 });
+
+// ── WAF sits in front of all remaining dashboard API routes ───────
+app.use(wafMiddleware);
 
 app.get("/api/stats", verifyToken, (req, res) => {
   res.json(getStats());
@@ -475,19 +475,24 @@ if (cluster.isPrimary) {
 
 } else {
   // Worker processes initialize DB, Monitor, and Server
-  connectDB().then(() => {
-    // Only seed the user if database actually connects up
-    seedAdminUser();
-  });
-  monitor.startMonitor();
+  const startWorker = async () => {
+    try {
+      // 1. Await Database connection prior to accepting traffic
+      await connectDB();
+      
+      // 2. Ensure Admin is seeded BEFORE login requests can hit
+      await seedAdminUser();
+      
+      // 3. Start System Monitor
+      monitor.startMonitor();
 
-  // Worker processes execute the main server listener
-  const server = app.listen(PORT, () => {
-    console.log(`[Worker Node ${process.pid}] Online and processing requests`);
-  });
+      // 4. Start HTTP Server
+      const server = app.listen(PORT, () => {
+        console.log(`[Worker Node ${process.pid}] Online and processing requests`);
+      });
 
-  // ── Socket.io Setup (Real-Time HUD) ──────────────────────────────
-  const io = new Server(server, {
+      // ── Socket.io Setup (Real-Time HUD) ──────────────────────────────
+      const io = new Server(server, {
     cors: {
       origin: allowedOrigins,
       methods: ["GET", "POST"]
@@ -533,36 +538,43 @@ if (cluster.isPrimary) {
     });
   });
 
-  // Attach io to app for use in other modules
-  app.set("io", io);
+      // Attach io to app for use in other modules
+      app.set("io", io);
 
-  // Socket Timeout Protection (Slowloris Mitigation)
-  server.setTimeout(30000); // 30s timeout
+      // Socket Timeout Protection (Slowloris Mitigation)
+      server.setTimeout(30000); // 30s timeout
 
-  // Graceful Shutdown Hooks
-  const gracefulShutdown = () => {
-    console.log(`\n🛑 [Worker Node ${process.pid}] SIGTERM received. Closing gracefully...`);
-    server.close(async () => {
-      try {
-        const mongoose = require("mongoose");
-        if (mongoose.connection.readyState === 1) {
-          await mongoose.connection.close();
-          console.log(`[Worker Node ${process.pid}] MongoDB safely disconnected.`);
-        }
-        process.exit(0);
-      } catch (err) {
-        console.error("Error during graceful shutdown", err);
-        process.exit(1);
-      }
-    });
-    
-    // Fallback terminator if MongoDB connection hangs
-    setTimeout(() => {
-      console.error(`[Worker Node ${process.pid}] Force closing after timeout.`);
+      // Graceful Shutdown Hooks
+      const gracefulShutdown = () => {
+        console.log(`\n🛑 [Worker Node ${process.pid}] SIGTERM received. Closing gracefully...`);
+        server.close(async () => {
+          try {
+            const mongoose = require("mongoose");
+            if (mongoose.connection.readyState === 1) {
+              await mongoose.connection.close();
+              console.log(`[Worker Node ${process.pid}] MongoDB safely disconnected.`);
+            }
+            process.exit(0);
+          } catch (err) {
+            console.error("Error during graceful shutdown", err);
+            process.exit(1);
+          }
+        });
+        
+        // Fallback terminator if MongoDB connection hangs
+        setTimeout(() => {
+          console.error(`[Worker Node ${process.pid}] Force closing after timeout.`);
+          process.exit(1);
+        }, 10000);
+      };
+
+      process.on('SIGTERM', gracefulShutdown);
+      process.on('SIGINT', gracefulShutdown);
+    } catch (err) {
+      console.error(`❌ [Worker Node ${process.pid}] Startup failed:`, err.message);
       process.exit(1);
-    }, 10000);
+    }
   };
 
-  process.on('SIGTERM', gracefulShutdown);
-  process.on('SIGINT', gracefulShutdown);
+  startWorker();
 }

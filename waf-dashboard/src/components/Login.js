@@ -47,7 +47,7 @@ export default function Login({ onSuccess, onBack }) {
         if (data.token) {
           localStorage.setItem("waf_jwt_token", data.token);
           setGranted(true);
-          setStatus("Access Granted: Welcome VISAKA");
+          setStatus(`Access Granted: Welcome ${data.user?.username || username}`);
           setTimeout(() => onSuccess(), 900);
         } else {
           throw new Error("INVALID_AUTH");
