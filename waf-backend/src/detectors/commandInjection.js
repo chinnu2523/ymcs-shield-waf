@@ -4,15 +4,15 @@ const SHELL_CONTEXT = /[;|&`$(){}<>\n]|^|\s/;
 
 const COMMAND_INJECTION_PATTERNS = [
   // Shell operators and execution patterns (these are always suspicious in URLs/bodies)
-  /`[^`]*\S[^`]*`/g,      // Backtick execution (non-empty)
-  /\$\([^)]+\)/g,          // $() command substitution
-  /\$\{IFS[^}]*\}/g,       // ${IFS} special variable
+  /`[^`]*\S[^`]*`/,      // Backtick execution (non-empty)
+  /\$\([^)]+\)/,          // $() command substitution
+  /\$\{IFS[^}]*\}/,       // ${IFS} special variable
 
   // These only match when combined with shell meta-chars (not standalone words)
-  /[;|&]\s*\b(exec|eval|bash|sh|zsh|powershell|pwsh|cmd)\b/gi,
+  /[;|&]\s*\b(exec|eval|bash|sh|zsh|powershell|pwsh|cmd)\b/i,
   /\bcat\s+\/etc\/(passwd|shadow)/i,
-  /\brm\s+-[rf]/gi,             // rm with flags is always suspicious
-  /\b(shell_exec|passthru|proc_open)\b/gi, // PHP functions are always suspicious
+  /\brm\s+-[rf]/i,             // rm with flags is always suspicious
+  /\b(shell_exec|passthru|proc_open)\b/i, // PHP functions are always suspicious
   /\b(curl|wget|nc|netcat)\s+/i,           // download tools followed by a space = suspicious
   /\b(sudo|su)\s+/i,                       // privilege escalation with argument
   /\bnet\s+(user|share|localgroup)/i,      // Windows net commands

@@ -8,7 +8,7 @@ const os          = require("os");
 const PDFDocument = require("pdfkit");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
-const { wafMiddleware, getStats, resetStats } = require("./src/waf");
+const { wafMiddleware, getStats, resetStats, syncStats } = require("./src/waf");
 const { connectDB, Log, Stat, getLogs, getHistory, getRules, updateRule, resetData, BlockedIP, Setting } = require("./src/utils/db");
 const { login, seedAdminUser, verifyToken } = require("./src/utils/auth");
 const monitor = require("./src/utils/systemMonitor");
@@ -19,10 +19,6 @@ require("dotenv").config();
 
 const app  = express();
 const PORT = process.env.PORT || 4000;
-
-// Initialize database logic moved to workers
-
-// Monitor start logic moved to workers
 
 // ── Basic middleware ──────────────────────────────────────────────
 app.use(helmet());
@@ -38,19 +34,15 @@ app.use(cors({
   }
 }));
 
-app.use(compression());         // GZIP payload compression for performance
+app.use(compression());         
 app.use(morgan("dev"));
-app.set("trust proxy", true); // Trust forwarded-for headers for IP identification
+app.set("trust proxy", true); 
 
-// ── Body parsing BEFORE WAF so req.body is available for POST XSS scanning ──
-// Express enforces the 1MB limit itself (returns 413 before reaching WAF).
-// The WAF additionally checks Content-Length header as a fast early-exit path.
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true, limit: "1mb" }));
 
 // ── Dashboard API routes ──────────────────────────────────────────
 
-// ── CORE SYSTEM ENDPOINTS (Accessible prior to complex WAF logic) ──
 app.get("/health", (req, res) => {
   const health = monitor.getHealthState();
   res.json({ 
@@ -60,11 +52,10 @@ app.get("/health", (req, res) => {
     database: health.database.status,
     waf:      health.waf.status,
     stats:    getStats(),
-    version:  "2.0.6-SECURE"
+    version:  "2.0.7-SECURE"
   });
 });
 
-// Auth Route (Bypass WAF body scanning to allow special chars in passwords)
 app.post("/api/auth/login", async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -75,14 +66,12 @@ app.post("/api/auth/login", async (req, res) => {
   }
 });
 
-// ── WAF sits in front of all remaining dashboard API routes ───────
 app.use(wafMiddleware);
 
 app.get("/api/stats", verifyToken, (req, res) => {
   res.json(getStats());
 });
 
-// ── PERSISTENT BLOCKLIST MANAGEMENT ──────────────────────────────
 app.get("/api/blocklist", verifyToken, async (req, res) => {
   try {
     const records = await BlockedIP.find().sort("-blockedAt");
@@ -132,10 +121,9 @@ app.get("/api/logs", verifyToken, async (req, res) => {
   res.json(logs);
 });
 
-// CSV Export Route
 app.get("/api/export/logs", verifyToken, async (req, res) => {
   try {
-    const logs = await getLogs(1000); // Fetch up to 1000 recent logs
+    const logs = await getLogs(1000); 
     const csvHeader = "Timestamp,IP,Method,Path,Status,RiskScore,AttackType,Explanation\r\n";
     const csvRows = logs.map(log => {
       return `"${log.timestamp}","${log.ip}","${log.method}","${log.path}","${log.status}","${log.riskScore}","${log.attackType}","${log.explanation}"`;
@@ -149,7 +137,6 @@ app.get("/api/export/logs", verifyToken, async (req, res) => {
   }
 });
 
-// Settings API
 app.get("/api/settings", verifyToken, async (req, res) => {
   try {
     const settings = await Setting.find({});
@@ -199,8 +186,6 @@ app.put("/api/rules/:id", verifyToken, async (req, res) => {
 app.post("/api/predictions", verifyToken, async (req, res) => {
   try {
     const logs = await getLogs(200);
-    
-    // Build per-IP aggregation
     const ipMap = {};
     logs.forEach(l => {
       const ip = l.ip || "unknown";
@@ -227,7 +212,6 @@ app.post("/api/predictions", verifyToken, async (req, res) => {
         topAttack: Object.entries(d.attackTypes).sort((a, b) => b[1] - a[1])[0]?.[0] || "none"
       }));
 
-    // Country distribution
     const countryMap = {};
     logs.forEach(l => {
       const c = l.country || "Unknown";
@@ -238,7 +222,6 @@ app.post("/api/predictions", verifyToken, async (req, res) => {
       .slice(0, 8)
       .map(([country, count]) => ({ country, count }));
 
-    // Attack type breakdown from real data
     const attackTypeMap = {};
     logs.filter(l => l.status === "BLOCKED").forEach(l => {
       const t = l.attackType || "unknown";
@@ -254,13 +237,11 @@ app.post("/api/predictions", verifyToken, async (req, res) => {
   }
 });
 
-// ── AI Threat Predictions ─────────────────────────────────────────
 app.get("/api/predictions", async (req, res) => {
   try {
     const stats = getStats();
     const logs = await getLogs(100);
 
-    // Attack frequency by type
     const typeFreq = {};
     logs.filter(l => l.status === "BLOCKED").forEach(l => {
       const t = l.attackType || "Other";
@@ -268,7 +249,6 @@ app.get("/api/predictions", async (req, res) => {
     });
     const total = Object.values(typeFreq).reduce((a, b) => a + b, 0) || 1;
 
-    // Predicted attack vectors with probability
     const predictedVectors = [
       { name: "SQL Injection",     probability: Math.round(((typeFreq["SQL Injection"] || 0) / total) * 100 + 35), trend: "rising" },
       { name: "XSS Attack",        probability: Math.round(((typeFreq["XSS Attack"] || 0) / total) * 100 + 25),    trend: "stable" },
@@ -279,7 +259,6 @@ app.get("/api/predictions", async (req, res) => {
     ].map(v => ({ ...v, probability: Math.min(95, v.probability) }))
      .sort((a, b) => b.probability - a.probability);
 
-    // 7-day forecast (simulated based on current block rate)
     const blockRate = parseFloat(stats.blockRate) || 20;
     const forecast = Array.from({ length: 7 }, (_, i) => {
       const dayOffset = 6 - i;
@@ -293,10 +272,8 @@ app.get("/api/predictions", async (req, res) => {
       };
     });
 
-    // Anomaly score
     const anomalyScore = Math.min(100, Math.round(blockRate * 1.8 + 10));
 
-    // Smart recommendations
     const recommendations = [
       { priority: "HIGH",   action: "Enable geo-blocking for high-risk regions", reason: `${Math.round(typeFreq["SQL Injection"] || 0)} SQL injection attempts detected` },
       { priority: "MEDIUM", action: "Tighten rate-limit threshold to 60 req/min", reason: "Traffic patterns suggest automated scanning" },
@@ -309,14 +286,10 @@ app.get("/api/predictions", async (req, res) => {
   }
 });
 
-// ── AI Analyst Chat ──────────────────────────────────────────────
 app.post("/api/ai/chat", async (req, res) => {
   const { message } = req.body;
   if (!process.env.GEMINI_API_KEY) {
-    // Intelligent mock mode with real data awareness
     const stats = getStats();
-    const blockRate = parseFloat(stats.blockRate) || 0;
-    
     let response = `**System Analysis Complete.**\n\nCurrent WAF Status:\n- **Total Requests:** ${stats.total}\n- **Blocked Attacks:** ${stats.blocked}\n- **Block Rate:** ${stats.blockRate}%\n- **Mean Latency:** ${stats.latency}ms\n\nAll security layers are operational. No critical anomalies detected in the current session.`;
     
     const q = message.toLowerCase();
@@ -373,33 +346,24 @@ app.post("/api/ai/chat", async (req, res) => {
   }
 });
 
-// ── PDF Report Generation ─────────────────────────────────────────
 app.get("/api/report/download", async (req, res) => {
   const doc = new PDFDocument();
   const filename = `WAF_Security_Report_${Date.now()}.pdf`;
-  
   res.setHeader("Content-disposition", `attachment; filename=${filename}`);
   res.setHeader("Content-type", "application/pdf");
-  
-  // FIX: pipe BEFORE end — piping after end means the data has already been
-  // written to the internal stream but not forwarded to the response
   doc.pipe(res);
-  
   doc.fontSize(25).text("Smart WAF Security Report", { align: "center" });
   doc.moveDown();
   doc.fontSize(12).text(`Generated on: ${new Date().toLocaleString()}`);
   doc.moveDown();
-
   const stats = getStats();
   doc.text(`Total Requests: ${stats.total}`);
   doc.text(`Blocked Attacks: ${stats.blocked}`);
   doc.text(`Allowance Rate: ${stats.allowed}`);
   doc.text(`Block Rate: ${stats.blockRate}%`);
   doc.moveDown();
-
   doc.fontSize(18).text("Recent Critical Threats", { underline: true });
   doc.moveDown();
-
   try {
     const threats = await Log.find({ status: "BLOCKED" }).sort({ timestamp: -1 }).limit(10);
     threats.forEach((t, i) => {
@@ -409,65 +373,56 @@ app.get("/api/report/download", async (req, res) => {
       doc.moveDown(0.5);
     });
   } catch (err) {}
-
   doc.end();
 });
 
-// ── Sample protected routes (for testing) ────────────────────────
-app.get("/api/users", (req, res) => {
-  res.json([
-    { id: 1, name: "Alice", role: "admin" },
-    { id: 2, name: "Bob",   role: "user"  },
-  ]);
-});
-
-app.get("/api/data", (req, res) => {
-  res.json({ message: "Protected data — you passed the WAF!" });
-});
-
-app.post("/api/data", (req, res) => {
-  res.json({ message: "Payload processed" });
-});
-
-// ── System Health (Full Detail) ──────────────────────────────────
 app.get("/api/system/health", verifyToken, (req, res) => {
   res.json(monitor.getHealthState());
 });
 
-// ── Start server (Cluster Mode for Durability) ─────────────────────
+// ── Cluster Infrastructure ──────────────────────────────────────────
+
 if (cluster.isPrimary) {
   const numCPUs = os.cpus().length || 1;
-  
-  // Render Free Tier Optimization: Force 1 worker to prevent OOM (512MB limit)
   const isRender = process.env.RENDER === "true";
   const workers = isRender ? 1 : Math.min(numCPUs, 4); 
-
-  if (isRender) {
-    console.log("🚀 [Resource Guard] Render Free Tier Detected. Scaling to 1 Worker for stability.");
-  }
-  
-  console.log(`\n🛡️  [Master Node] Initializing Neural Engine on ${workers} cores...`);
-  console.log(`🔑  Auth:    http://localhost:${PORT}/api/auth/login`);
-  console.log(`📊  Stats:   http://localhost:${PORT}/api/stats`);
-  console.log(`🔮  Predict: http://localhost:${PORT}/api/predictions`);
-  console.log(`🤖  Monitor: http://localhost:${PORT}/api/system/health`);
-  console.log(`❤️   Health:  http://localhost:${PORT}/health\n`);
-
   const { checkLocal } = require("./src/detectors/rateLimit");
+  
+  // Master Node: Source of Truth for Real-Time Statistics
+  const globalStats = { total: 0, blocked: 0, allowed: 0, latency: 1 };
+
+  console.log(`\n🛡️  [Master Node] Initializing Guard Cluster on ${workers} cores...`);
+  console.log(`🚀 [Resource Guard] Render Environment Detection: ${isRender ? 'Free Tier Enabled' : 'Standard Tier'}`);
+  console.log(`❤️  Health: http://localhost:${PORT}/health\n`);
 
   const setupWorker = (w) => {
     w.on('message', (msg) => {
-      // 1. Centralized Rate-Limit Checks
+      // 1. Centralized Rate-Limit Logic (Preserves consistency across workers)
       if (msg.type === "RATELIMIT_REQ") {
         const result = checkLocal(msg.ip);
         w.send({ type: "RATELIMIT_RES", id: msg.id, result });
       }
       
-      // 2. [NEW] Cluster Event Relay (Fallback for Redis)
-      if (msg.type === "SOCKET_BROADCAST") {
-        // Forward to all OTHER workers
+      // 2. Stats Aggregation (Source of Truth)
+      if (msg.type === "STATS_UPDATE") {
+        // We accumulate only the HIGHEST values to handle worker resets/forks correctly
+        globalStats.total   = Math.max(globalStats.total,   msg.data.total);
+        globalStats.blocked = Math.max(globalStats.blocked, msg.data.blocked);
+        globalStats.allowed = Math.max(globalStats.allowed, msg.data.allowed);
+        globalStats.latency = msg.data.latency; // Use most recent sample
+        
+        // Sync aggregated totals back to all workers for reporting accuracy
         Object.values(cluster.workers).forEach(worker => {
-          if (worker.id !== w.id) {
+          if (worker && worker.isConnected()) {
+            worker.send({ type: "SYNC_GLOBAL_STATS", data: globalStats });
+          }
+        });
+      }
+
+      // 3. Socket.io Event Relay (Software Redis Layer)
+      if (msg.type === "SOCKET_BROADCAST") {
+        Object.values(cluster.workers).forEach(worker => {
+          if (worker && worker.id !== w.id && worker.isConnected()) {
             worker.send(msg);
           }
         });
@@ -479,130 +434,81 @@ if (cluster.isPrimary) {
     setupWorker(cluster.fork());
   }
 
-  // Durability: Auto-revive dead workers immediately
   cluster.on('exit', (worker, code, signal) => {
-    console.warn(`⚠️  [Master Node] Worker ${worker.process.pid} died (signal: ${signal}). Reviving...`);
+    console.warn(`⚠️ [Master Node] Worker ${worker.process.pid} lost. Respawning...`);
     setupWorker(cluster.fork());
   });
 
 } else {
-  // Worker processes initialize DB, Monitor, and Server
+  // ── Worker Process Execution ───────────────────────────────────────
   const startWorker = async () => {
     try {
-      // 1. Await Database connection prior to accepting traffic
       await connectDB();
-      
-      // 2. Ensure Admin is seeded BEFORE login requests can hit
       await seedAdminUser();
-      
-      // 3. Start System Monitor
       monitor.startMonitor();
 
-      // 4. Start HTTP Server
       const server = app.listen(PORT, () => {
-        console.log(`[Worker Node ${process.pid}] Online and processing requests`);
+        console.log(`[Worker ${process.pid}] Accepting firewall traffic.`);
       });
 
-      // ── Socket.io Setup (Real-Time HUD) ──────────────────────────────
-      const io = new Server(server, {
-    cors: {
-      origin: allowedOrigins,
-      methods: ["GET", "POST"]
-    }
-  });
+      const io = new Server(server, { cors: { origin: allowedOrigins } });
 
-  // Redis Adapter for Cluster Synchronization
-  if (process.env.REDIS_URL) {
-    const pubClient = createClient({ url: process.env.REDIS_URL });
-    const subClient = pubClient.duplicate();
-    
-    Promise.all([pubClient.connect(), subClient.connect()]).then(() => {
-      io.adapter(createAdapter(pubClient, subClient));
-      console.log(`📡 [Worker Node ${process.pid}] Redis Socket Adapter Active`);
-    }).catch(err => {
-      console.warn(`📡 [Worker Node ${process.pid}] Redis Sync Failed: ${err.message}. Falling back to per-worker sockets.`);
-    });
-  }
+      if (process.env.REDIS_URL) {
+        const pubClient = createClient({ url: process.env.REDIS_URL });
+        const subClient = pubClient.duplicate();
+        Promise.all([pubClient.connect(), subClient.connect()]).then(() => {
+          io.adapter(createAdapter(pubClient, subClient));
+        }).catch(err => { console.warn("Redis Sync Unavailable"); });
+      }
 
-  // Socket Authentication (JWT Handshake)
-  io.use((socket, next) => {
-    const token = socket.handshake.auth.token;
-    if (!token) return next(new Error("Authentication error: Token missing"));
-    
-    const jwt = require("jsonwebtoken");
-    const JWT_SECRET = process.env.JWT_SECRET || "ymcs-shield-super-secret-key-2026";
-    
-    jwt.verify(token, JWT_SECRET, (err, decoded) => {
-      if (err) return next(new Error("Authentication error: Invalid session"));
-      socket.user = decoded;
-      next();
-    });
-  });
-
-  io.on("connection", (socket) => {
-    console.log(`🔌 [Worker Node ${process.pid}] Administrator connected: ${socket.user.username}`);
-    
-    // Send initial snapshot
-    socket.emit("stats_update", getStats());
-    
-    socket.on("disconnect", () => {
-      console.log(`🔌 [Worker Node ${process.pid}] Administrator disconnected`);
-    });
-  });
-
-  // ── Cluster Synchronization Relay (Redis Fallback) ───────────────
-  const clusterBroadcast = (event, data) => {
-    // 1. Emit locally on this worker
-    io.emit(event, data);
-
-    // 2. If Redis is NOT active, manually relay via Master IPC
-    if (!process.env.REDIS_URL && process.send) {
-      process.send({ type: "SOCKET_BROADCAST", event, data });
-    }
-  };
-
-  // Listen for broadcasts from other workers (relayed by Master)
-  process.on("message", (msg) => {
-    if (msg.type === "SOCKET_BROADCAST" && io) {
-      io.emit(msg.event, msg.data);
-    }
-  });
-
-  // Attach helpers for use in other modules
-  app.set("io", io);
-  app.set("clusterBroadcast", clusterBroadcast);
-
-      // Socket Timeout Protection (Slowloris Mitigation)
-      server.setTimeout(30000); // 30s timeout
-
-      // Graceful Shutdown Hooks
-      const gracefulShutdown = () => {
-        console.log(`\n🛑 [Worker Node ${process.pid}] SIGTERM received. Closing gracefully...`);
-        server.close(async () => {
-          try {
-            const mongoose = require("mongoose");
-            if (mongoose.connection.readyState === 1) {
-              await mongoose.connection.close();
-              console.log(`[Worker Node ${process.pid}] MongoDB safely disconnected.`);
-            }
-            process.exit(0);
-          } catch (err) {
-            console.error("Error during graceful shutdown", err);
-            process.exit(1);
-          }
+      io.use((socket, next) => {
+        const token = socket.handshake.auth.token;
+        if (!token) return next(new Error("Auth Error"));
+        const jwt = require("jsonwebtoken");
+        const JWT_SECRET = process.env.JWT_SECRET || "ymcs-shield-super-secret-key-2026";
+        jwt.verify(token, JWT_SECRET, (err, decoded) => {
+          if (err) return next(new Error("Auth Error"));
+          socket.user = decoded;
+          next();
         });
-        
-        // Fallback terminator if MongoDB connection hangs
-        setTimeout(() => {
-          console.error(`[Worker Node ${process.pid}] Force closing after timeout.`);
-          process.exit(1);
-        }, 10000);
+      });
+
+      io.on("connection", (socket) => {
+        socket.emit("stats_update", getStats());
+      });
+
+      // ── IPC Relay & Sync Listeners ─────────────────────────────────
+      process.on("message", (msg) => {
+        if (msg.type === "SOCKET_BROADCAST" && io) {
+          io.emit(msg.event, msg.data);
+        }
+        if (msg.type === "SYNC_GLOBAL_STATS") {
+          syncStats(msg.data);
+        }
+      });
+
+      const clusterBroadcast = (event, data) => {
+        io.emit(event, data);
+        if (!process.env.REDIS_URL && process.send) {
+          process.send({ type: "SOCKET_BROADCAST", event, data });
+        }
       };
 
+      app.set("io", io);
+      app.set("clusterBroadcast", clusterBroadcast);
+
+      const gracefulShutdown = () => {
+        server.close(async () => {
+          const mongoose = require("mongoose");
+          if (mongoose.connection.readyState === 1) await mongoose.connection.close();
+          process.exit(0);
+        });
+      };
       process.on('SIGTERM', gracefulShutdown);
       process.on('SIGINT', gracefulShutdown);
+
     } catch (err) {
-      console.error(`❌ [Worker Node ${process.pid}] Startup failed:`, err.message);
+      console.error(`Status check failed: ${err.message}`);
       process.exit(1);
     }
   };

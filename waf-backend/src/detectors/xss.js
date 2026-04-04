@@ -1,38 +1,38 @@
 const XSS_PATTERNS = [
   // Scripts & Injections
-  /<script[^>]*>[\s\S]*?<\/script>/gi,
-  /javascript:/gi,
-  /vbscript:/gi,
-  /expression\(/gi,
-  /eval\(/gi,
+  /<script[^>]*>[\s\S]*?<\/script>/i,
+  /javascript:/i,
+  /vbscript:/i,
+  /expression\(/i,
+  /eval\(/i,
   
   // Event Handlers (Catch all onX= patterns)
-  /on\w+\s*=\s*[\"\'\s]*[\w\s\(\)]+/gi,
+  /on\w+\s*=\s*[\"\'\s]*[\w\s\(\)]+/i,
   
   // Doms & Resources
-  /<iframe/gi,
-  /<object/gi,
-  /<embed/gi,
-  /<applet/gi,
-  /<link[^>]+href[^>]+javascript:/gi,
-  /<form[^>]+action[^>]+javascript:/gi,
+  /<iframe/i,
+  /<object/i,
+  /<embed/i,
+  /<applet/i,
+  /<link[^>]+href[^>]+javascript:/i,
+  /<form[^>]+action[^>]+javascript:/i,
   
   // Encoding & Data URIs
-  /data:text\/html/gi,
-  /base64\s*,/gi,
+  /data:text\/html/i,
+  /base64\s*,/i,
   
   // Document Object Access
-  /document\.cookie/gi,
-  /document\.write/gi,
-  /window\.location/gi,
+  /document\.cookie/i,
+  /document\.write/i,
+  /window\.location/i,
   
   // SVG Injections
-  /<svg[^>]*onload/gi,
-  /<svg[^>]*onmouseover/gi,
+  /<svg[^>]*onload/i,
+  /<svg[^>]*onmouseover/i,
   
   // Malformed Tags
-  /<img[^>]+src[^>]*>/gi,
-  /<svg[^>]*>/gi,
+  /<img[^>]+src[^>]*>/i,
+  /<svg[^>]*>/i,
 ];
 
 const DANGEROUS_TAGS = [

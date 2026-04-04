@@ -160,10 +160,16 @@ async function wafMiddleware(req, res, next) {
     next();
   } catch (globalError) {
     console.error("CRITICAL WAF FAILURE:", globalError.message, "\nStack:", globalError.stack);
-    // Durability: If the WAF itself has a critical failure, we allow the request but log the error
-    // This prevents the WAF from becoming a single point of failure for the application
     next();
   }
+}
+
+function syncStats(data) {
+  if (!data) return;
+  stats.total = data.total;
+  stats.blocked = data.blocked;
+  stats.allowed = data.allowed;
+  if (data.latency) stats.latency = data.latency;
 }
 
 async function saveToDB(req, ip, result, isBlocked = true) {
@@ -196,17 +202,19 @@ async function saveToDB(req, ip, result, isBlocked = true) {
 
     // ── Real-Time Cluster-Wide Broadcast ──────────────────────────
     const broadcaster = req.app.get("clusterBroadcast");
+    const currentStats = getStats();
+
     if (broadcaster) {
-      // Broadcast the new log entry
-      broadcaster("new_log", {
-        ...logData,
-        id: Date.now() // Temporary ID until DB insertion
-      });
-      // Broadcast the updated stats snapshot
-      broadcaster("stats_update", getStats());
+      broadcaster("new_log", { ...logData, id: Date.now() });
+      broadcaster("stats_update", currentStats);
+    }
+
+    // ── Sync with Master Aggregator (Source of Truth) ─────────────
+    if (process.send) {
+      process.send({ type: "STATS_UPDATE", data: currentStats });
     }
   } catch (e) {
-    console.error("Cluster Broadcast Error:", e.message);
+    console.error("Cluster Sync Error:", e.message);
   }
 }
 
@@ -222,8 +230,10 @@ function resetStats() {
   stats.total   = 0;
   stats.blocked = 0;
   stats.allowed = 0;
-  stats.latency = 0;
-  console.log("♻️  WAF Stats Reset Complete");
+  stats.latency = 1;
+  if (process.send) {
+    process.send({ type: "STATS_UPDATE", data: stats });
+  }
 }
 
-module.exports = { wafMiddleware, getStats, resetStats };
+module.exports = { wafMiddleware, getStats, resetStats, syncStats };
