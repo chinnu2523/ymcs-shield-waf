@@ -48,6 +48,11 @@ function scanRequest(req) {
 
   // 3. User-Agent analysis (Basic Bot Detection)
   const ua = req.headers["user-agent"] || "";
+  
+  // Whitelist common CLI and API tools for testing/monitoring
+  const WHITELIST_UA = /curl|wget|python-requests|axios|postman/i;
+  if (WHITELIST_UA.test(ua)) return { detected: false };
+
   for (const pattern of SUSPICIOUS_UA_PATTERNS) {
     if (pattern.test(ua)) {
       return { 

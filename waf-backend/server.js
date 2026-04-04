@@ -448,29 +448,34 @@ if (cluster.isPrimary) {
 
   const { checkLocal } = require("./src/detectors/rateLimit");
 
-  for (let i = 0; i < workers; i++) {
-    const worker = cluster.fork();
-    
-    // Core clustering synchronization! Route rate-limit checks centrally.
-    worker.on('message', (msg) => {
+  const setupWorker = (w) => {
+    w.on('message', (msg) => {
+      // 1. Centralized Rate-Limit Checks
       if (msg.type === "RATELIMIT_REQ") {
-        const result = checkLocal(msg.ip); // Master processes locally
-        worker.send({ type: "RATELIMIT_RES", id: msg.id, result });
+        const result = checkLocal(msg.ip);
+        w.send({ type: "RATELIMIT_RES", id: msg.id, result });
+      }
+      
+      // 2. [NEW] Cluster Event Relay (Fallback for Redis)
+      if (msg.type === "SOCKET_BROADCAST") {
+        // Forward to all OTHER workers
+        Object.values(cluster.workers).forEach(worker => {
+          if (worker.id !== w.id) {
+            worker.send(msg);
+          }
+        });
       }
     });
+  };
+
+  for (let i = 0; i < workers; i++) {
+    setupWorker(cluster.fork());
   }
 
   // Durability: Auto-revive dead workers immediately
   cluster.on('exit', (worker, code, signal) => {
     console.warn(`⚠️  [Master Node] Worker ${worker.process.pid} died (signal: ${signal}). Reviving...`);
-    const newWorker = cluster.fork();
-    newWorker.on('message', (msg) => {
-      if (msg.type === "RATELIMIT_REQ") {
-        const { checkLocal } = require("./src/detectors/rateLimit");
-        const result = checkLocal(msg.ip);
-        newWorker.send({ type: "RATELIMIT_RES", id: msg.id, result });
-      }
-    });
+    setupWorker(cluster.fork());
   });
 
 } else {
@@ -538,8 +543,27 @@ if (cluster.isPrimary) {
     });
   });
 
-      // Attach io to app for use in other modules
-      app.set("io", io);
+  // ── Cluster Synchronization Relay (Redis Fallback) ───────────────
+  const clusterBroadcast = (event, data) => {
+    // 1. Emit locally on this worker
+    io.emit(event, data);
+
+    // 2. If Redis is NOT active, manually relay via Master IPC
+    if (!process.env.REDIS_URL && process.send) {
+      process.send({ type: "SOCKET_BROADCAST", event, data });
+    }
+  };
+
+  // Listen for broadcasts from other workers (relayed by Master)
+  process.on("message", (msg) => {
+    if (msg.type === "SOCKET_BROADCAST" && io) {
+      io.emit(msg.event, msg.data);
+    }
+  });
+
+  // Attach helpers for use in other modules
+  app.set("io", io);
+  app.set("clusterBroadcast", clusterBroadcast);
 
       // Socket Timeout Protection (Slowloris Mitigation)
       server.setTimeout(30000); // 30s timeout

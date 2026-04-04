@@ -194,19 +194,19 @@ async function saveToDB(req, ip, result, isBlocked = true) {
     addLog(logData);
     updateDailyStats(isBlocked, logData.attackType);
 
-    // ── Real-Time Socket.io Broadcast ──────────────────────────────
-    const io = req.app.get("io");
-    if (io) {
-      // Emit the new log entry
-      io.emit("new_log", {
+    // ── Real-Time Cluster-Wide Broadcast ──────────────────────────
+    const broadcaster = req.app.get("clusterBroadcast");
+    if (broadcaster) {
+      // Broadcast the new log entry
+      broadcaster("new_log", {
         ...logData,
         id: Date.now() // Temporary ID until DB insertion
       });
-      // Emit the updated stats snapshot
-      io.emit("stats_update", getStats());
+      // Broadcast the updated stats snapshot
+      broadcaster("stats_update", getStats());
     }
   } catch (e) {
-    console.error("Socket Emission Error:", e.message);
+    console.error("Cluster Broadcast Error:", e.message);
   }
 }
 

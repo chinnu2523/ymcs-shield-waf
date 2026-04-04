@@ -8,6 +8,11 @@ const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "visaka"; // default passwo
 
 async function seedAdminUser() {
   try {
+    const mongoose = require("mongoose");
+    if (mongoose.connection.readyState !== 1) {
+      console.warn("⚠️  Skipping Admin Seeding: Database not connected. (Using In-Memory Fallback)");
+      return;
+    }
     const existingAdmin = await User.findOne({ username: ADMIN_USERNAME });
     if (!existingAdmin) {
       const passwordHash = await bcrypt.hash(ADMIN_PASSWORD, 10);
@@ -20,6 +25,10 @@ async function seedAdminUser() {
 }
 
 async function login(username, password) {
+  const mongoose = require("mongoose");
+  if (mongoose.connection.readyState !== 1) {
+    throw new Error("SECURE_DATABASE_OFFLINE");
+  }
   const user = await User.findOne({ username });
   if (!user) {
     throw new Error("Invalid credentials");

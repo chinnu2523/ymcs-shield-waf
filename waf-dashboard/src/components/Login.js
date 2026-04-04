@@ -57,6 +57,7 @@ export default function Login({ onSuccess, onBack }) {
         let msg = "Access Denied: Core Offline";
         if (err.message === "INVALID_AUTH") msg = "Access Denied: Invalid Neural Signature";
         if (err.message === "ROUTE_NOT_FOUND") msg = "Sync Error: API v2.0.5 Not Found";
+        if (err.message === "SECURE_DATABASE_OFFLINE") msg = "System Warning: Secure Database Offline";
         
         setStatus(msg);
         setIsScanning(false);
