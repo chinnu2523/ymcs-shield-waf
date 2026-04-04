@@ -114,10 +114,6 @@ app.delete("/api/blocklist/:ip", verifyToken, async (req, res) => {
   }
 });
 
-app.get("/api/stats", verifyToken, (req, res) => {
-  res.json(getStats());
-});
-
 app.post("/api/reset", verifyToken, async (req, res) => {
   try {
     await resetData();
