@@ -193,7 +193,21 @@ async function saveToDB(req, ip, result, isBlocked = true) {
     // Performance: Use buffered logging to reduce DB pressure
     addLog(logData);
     updateDailyStats(isBlocked, logData.attackType);
-  } catch (e) {}
+
+    // ── Real-Time Socket.io Broadcast ──────────────────────────────
+    const io = req.app.get("io");
+    if (io) {
+      // Emit the new log entry
+      io.emit("new_log", {
+        ...logData,
+        id: Date.now() // Temporary ID until DB insertion
+      });
+      // Emit the updated stats snapshot
+      io.emit("stats_update", getStats());
+    }
+  } catch (e) {
+    console.error("Socket Emission Error:", e.message);
+  }
 }
 
 function getStats() {

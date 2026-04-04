@@ -12,6 +12,9 @@ const { wafMiddleware, getStats, resetStats } = require("./src/waf");
 const { connectDB, Log, Stat, getLogs, getHistory, getRules, updateRule, resetData, BlockedIP, Setting } = require("./src/utils/db");
 const { login, seedAdminUser, verifyToken } = require("./src/utils/auth");
 const monitor = require("./src/utils/systemMonitor");
+const { Server } = require("socket.io");
+const { createAdapter } = require("@socket.io/redis-adapter");
+const { createClient } = require("redis");
 require("dotenv").config();
 
 const app  = express();
@@ -482,6 +485,56 @@ if (cluster.isPrimary) {
   const server = app.listen(PORT, () => {
     console.log(`[Worker Node ${process.pid}] Online and processing requests`);
   });
+
+  // ── Socket.io Setup (Real-Time HUD) ──────────────────────────────
+  const io = new Server(server, {
+    cors: {
+      origin: allowedOrigins,
+      methods: ["GET", "POST"]
+    }
+  });
+
+  // Redis Adapter for Cluster Synchronization
+  if (process.env.REDIS_URL) {
+    const pubClient = createClient({ url: process.env.REDIS_URL });
+    const subClient = pubClient.duplicate();
+    
+    Promise.all([pubClient.connect(), subClient.connect()]).then(() => {
+      io.adapter(createAdapter(pubClient, subClient));
+      console.log(`📡 [Worker Node ${process.pid}] Redis Socket Adapter Active`);
+    }).catch(err => {
+      console.warn(`📡 [Worker Node ${process.pid}] Redis Sync Failed: ${err.message}. Falling back to per-worker sockets.`);
+    });
+  }
+
+  // Socket Authentication (JWT Handshake)
+  io.use((socket, next) => {
+    const token = socket.handshake.auth.token;
+    if (!token) return next(new Error("Authentication error: Token missing"));
+    
+    const jwt = require("jsonwebtoken");
+    const JWT_SECRET = process.env.JWT_SECRET || "ymcs-shield-super-secret-key-2026";
+    
+    jwt.verify(token, JWT_SECRET, (err, decoded) => {
+      if (err) return next(new Error("Authentication error: Invalid session"));
+      socket.user = decoded;
+      next();
+    });
+  });
+
+  io.on("connection", (socket) => {
+    console.log(`🔌 [Worker Node ${process.pid}] Administrator connected: ${socket.user.username}`);
+    
+    // Send initial snapshot
+    socket.emit("stats_update", getStats());
+    
+    socket.on("disconnect", () => {
+      console.log(`🔌 [Worker Node ${process.pid}] Administrator disconnected`);
+    });
+  });
+
+  // Attach io to app for use in other modules
+  app.set("io", io);
 
   // Socket Timeout Protection (Slowloris Mitigation)
   server.setTimeout(30000); // 30s timeout

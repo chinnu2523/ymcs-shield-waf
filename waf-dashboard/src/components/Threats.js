@@ -11,9 +11,13 @@ export default function Threats({ threats, setActiveView }) {
   const blockIP = async (ip) => {
     setBlocking(ip);
     try {
+      const token = localStorage.getItem("waf_jwt_token");
       await fetch(`${API_BASE}/blocklist`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}` 
+        },
         body: JSON.stringify({ ip, reason: "Manual block from Threats dashboard" })
       });
       alert(`IP ${ip} successfully blocked!`);
