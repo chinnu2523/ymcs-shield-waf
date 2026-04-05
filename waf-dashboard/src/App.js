@@ -38,7 +38,8 @@ export default function App() {
     running, setRunning, status,
     threats, setThreats,
     logs, counters, history,
-  } = useSimulator(() => setViewState(VIEW_STATES.LOGIN));  // was: useSimulator()
+    rules, setRules,
+  } = useSimulator(onLogout);
 
   // Handle Boot Sequence Delay
   useEffect(() => {

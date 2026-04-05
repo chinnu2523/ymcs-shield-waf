@@ -135,7 +135,7 @@ export default function useSimulator(onLogout) {
     return () => {
       if (socket) socket.disconnect();
     };
-  }, [running, onLogout]);
+  }, [running]); // Removed onLogout to prevent infinite Loop
 
   return { running, setRunning, status, threats, setThreats, logs, counters, history, rules, setRules };
 }
