@@ -6,8 +6,8 @@ const XSS_PATTERNS = [
   /expression\(/i,
   /eval\(/i,
   
-  // Event Handlers (Catch all onX= patterns)
-  /on\w+\s*=\s*[\"\'\s]*[\w\s\(\)]+/i,
+  // Event Handlers (Catch all onX= patterns, excluding data- and broad words)
+  /(?:^|[^\w-])on[a-z]+\s*=\s*[\"\'\s]*[\w\s\(\)]+/i,
   
   // Doms & Resources
   /<iframe/i,

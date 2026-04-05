@@ -176,21 +176,6 @@ app.get("/api/export/logs", verifyToken, async (req, res) => {
   }
 });
 
-app.get("/api/export/logs", verifyToken, async (req, res) => {
-  try {
-    const logs = await getLogs(1000); 
-    const csvHeader = "Timestamp,IP,Method,Path,Status,RiskScore,AttackType,Explanation\r\n";
-    const csvRows = logs.map(log => {
-      return `"${log.timestamp}","${log.ip}","${log.method}","${log.path}","${log.status}","${log.riskScore}","${log.attackType}","${log.explanation}"`;
-    }).join('\r\n');
-    
-    res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', 'attachment; filename="ymcs-shield-security-logs.csv"');
-    res.status(200).send(csvHeader + csvRows);
-  } catch (err) {
-    res.status(500).json({ error: "Export failed" });
-  }
-});
 
 app.get("/api/settings", verifyToken, async (req, res) => {
   try {
@@ -295,7 +280,7 @@ app.post("/api/predictions", verifyToken, async (req, res) => {
   }
 });
 
-app.get("/api/predictions", async (req, res) => {
+app.get("/api/predictions", verifyToken, async (req, res) => {
   try {
     const stats = getStats();
     const logs = await getLogs(100);
