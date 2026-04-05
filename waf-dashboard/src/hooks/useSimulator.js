@@ -25,8 +25,7 @@ export default function useSimulator(onLogout) {
       const sRes = await fetch(`${API_BASE}/stats`, { headers });
       if (sRes.status === 401) {
         localStorage.removeItem("waf_jwt_token");
-        setStatus("unauthorized");
-        if (onLogout) onLogout();
+        if (onLogout) onLogout();  // was: window.location.reload()
         return;
       }
       const sData = await sRes.json();
