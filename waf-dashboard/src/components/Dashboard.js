@@ -7,6 +7,7 @@ import API_BASE from "../config";
 export default function Dashboard({ rules = [], counters, threats, logs, status = "online" }) {
   const [simulating, setSimulating] = useState(null); 
   const [rebooting, setRebooting] = useState(false);
+  const [showResetModal, setShowResetModal] = useState(false);
 
   // Animation Variants
   const containerVariants = {
@@ -27,8 +28,11 @@ export default function Dashboard({ rules = [], counters, threats, logs, status 
   };
 
   const handleRestart = async () => {
-    if (!window.confirm("CRITICAL: Confirmed System Reset? All logs and metrics will be purged.")) return;
-    
+    setShowResetModal(true);
+  };
+
+  const executeRestart = async () => {
+    setShowResetModal(false);
     setRebooting(true);
     try {
       await fetch(`${API_BASE}/reset`, { method: "POST" });
@@ -296,6 +300,39 @@ export default function Dashboard({ rules = [], counters, threats, logs, status 
             </div>
           </motion.div>
         )}
+      </AnimatePresence>
+
+      {/* ── Custom Reset Confirmation Modal ── */}
+      <AnimatePresence>
+      {showResetModal && (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm">
+           <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="glass-card w-full max-w-md p-8 relative border border-danger/30 shadow-[0_0_50px_rgba(255,0,51,0.1)]">
+              <div className="flex flex-col items-center text-center gap-4">
+                 <div className="w-16 h-16 rounded-full bg-danger/10 border border-danger/30 flex items-center justify-center animate-pulse">
+                    <RotateCcw className="text-danger" size={32} />
+                 </div>
+                 <h2 className="text-xl font-black text-white uppercase tracking-widest mt-2">Critical System Reset</h2>
+                 <p className="text-[11px] text-danger font-black uppercase tracking-widest opacity-80 mb-4 px-4 leading-relaxed">
+                   Are you sure you want to purge all logs, metrics, and security policies? This action is irreversible.
+                 </p>
+                 <div className="flex gap-4 w-full">
+                   <button 
+                     onClick={() => setShowResetModal(false)}
+                     className="flex-1 py-3 bg-white/5 hover:bg-white/10 rounded-lg text-xs font-black text-dim uppercase tracking-widest transition-colors"
+                   >
+                     Abort
+                   </button>
+                   <button 
+                     onClick={executeRestart}
+                     className="flex-1 py-3 bg-danger/20 border border-danger/40 hover:bg-danger/30 rounded-lg text-xs font-black text-danger uppercase tracking-widest transition-colors shadow-[0_0_15px_rgba(255,0,51,0.2)]"
+                   >
+                     Confirm Purge
+                   </button>
+                 </div>
+              </div>
+           </motion.div>
+        </motion.div>
+      )}
       </AnimatePresence>
     </motion.div>
   );

@@ -86,8 +86,19 @@ async function analyzeRequest(req) {
 
 function mockAnalysis(req) {
   // Enhanced mock logic for durability
-  const fullPayload = JSON.stringify({ q: req.query, b: req.body }).toUpperCase();
-  const suspicious = ["<SCRIPT>", "UNION SELECT", "SLEEP(", "$WHERE"].some(p => fullPayload.includes(p));
+  let fullPayload = "";
+  try {
+    fullPayload = JSON.stringify({ 
+      q: req?.query || {}, 
+      b: req?.body || {} 
+    }).toUpperCase();
+  } catch (e) {
+    fullPayload = "SAFE_FALLBACK";
+  }
+
+  const suspicious = ["<SCRIPT>", "UNION SELECT", "SLEEP(", "$WHERE"].some(p => {
+    return fullPayload && typeof fullPayload.includes === 'function' && fullPayload.includes(p);
+  });
 
   if (suspicious) {
     return {

@@ -23,7 +23,7 @@ const PORT = process.env.PORT || 4000;
 // ── Basic middleware ──────────────────────────────────────────────
 app.use(helmet());
 
-const allowedOrigins = ["http://localhost:3000", "http://localhost:4000", "https://chinnu2523.github.io"];
+const allowedOrigins = ["http://localhost:3000", "http://localhost:3001", "http://localhost:4000", "https://chinnu2523.github.io"];
 app.use(cors({
   origin: function (origin, callback) {
     if (!origin || allowedOrigins.indexOf(origin) !== -1) {
@@ -72,6 +72,37 @@ app.get("/api/stats", verifyToken, (req, res) => {
   res.json(getStats());
 });
 
+app.get("/api/userdashboard", verifyToken, async (req, res) => {
+  try {
+    const logs = await getLogs(500);
+    const topAttackersMap = {};
+    const countryStatsMap = {};
+    const attackBreakdownMap = {};
+
+    logs.forEach(l => {
+      if (!l.ip) return;
+      if (!topAttackersMap[l.ip]) topAttackersMap[l.ip] = { ip: l.ip, total: 0, blocked: 0, riskScore: 0, topAttack: "none" };
+      topAttackersMap[l.ip].total++;
+      if (l.status === "BLOCKED") topAttackersMap[l.ip].blocked++;
+      topAttackersMap[l.ip].riskScore = Math.max(topAttackersMap[l.ip].riskScore, l.riskScore || 0);
+      if (l.attackType && l.status === "BLOCKED") {
+         topAttackersMap[l.ip].topAttack = l.attackType;
+         attackBreakdownMap[l.attackType] = (attackBreakdownMap[l.attackType] || 0) + 1;
+      }
+      const c = l.country || "Localhost";
+      countryStatsMap[c] = (countryStatsMap[c] || 0) + 1;
+    });
+
+    res.json({
+      topAttackers: Object.values(topAttackersMap).sort((a,b) => b.blocked - a.blocked).slice(0, 10),
+      countryStats: Object.keys(countryStatsMap).map(k => ({ country: k, count: countryStatsMap[k] })).sort((a,b) => b.count - a.count),
+      attackBreakdown: Object.keys(attackBreakdownMap).map(k => ({ name: k, value: attackBreakdownMap[k] })).sort((a,b) => b.value - a.value)
+    });
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 app.get("/api/blocklist", verifyToken, async (req, res) => {
   try {
     const records = await BlockedIP.find().sort("-blockedAt");
@@ -110,15 +141,39 @@ app.post("/api/reset", verifyToken, async (req, res) => {
   try {
     await resetData();
     resetStats();
+    const broadcaster = req.app.get("clusterBroadcast");
+    if (broadcaster) {
+      broadcaster("history_update", { allowed: Array(20).fill(0), blocked: Array(20).fill(0) });
+      const rules = await getRules();
+      broadcaster("rule_update", rules);
+      broadcaster("stats_update", getStats());
+    }
     res.json({ success: true, message: "System reset complete" });
   } catch (e) {
     res.status(500).json({ error: "Reset failed", detail: e.message });
   }
 });
 
+
 app.get("/api/logs", verifyToken, async (req, res) => {
   const logs = await getLogs();
   res.json(logs);
+});
+
+app.get("/api/export/logs", verifyToken, async (req, res) => {
+  try {
+    const logs = await getLogs(1000); 
+    const csvHeader = "Timestamp,IP,Method,Path,Status,RiskScore,AttackType,Explanation\r\n";
+    const csvRows = logs.map(log => {
+      return `"${log.timestamp}","${log.ip}","${log.method}","${log.path}","${log.status}","${log.riskScore}","${log.attackType}","${log.explanation}"`;
+    }).join('\r\n');
+    
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename="ymcs-shield-security-logs.csv"');
+    res.status(200).send(csvHeader + csvRows);
+  } catch (err) {
+    res.status(500).json({ error: "Export failed" });
+  }
 });
 
 app.get("/api/export/logs", verifyToken, async (req, res) => {
@@ -177,6 +232,9 @@ app.get("/api/rules", verifyToken, async (req, res) => {
 app.put("/api/rules/:id", verifyToken, async (req, res) => {
   try {
     await updateRule(req.params.id, req.body);
+    const rules = await getRules();
+    const broadcaster = req.app.get("clusterBroadcast");
+    if (broadcaster) broadcaster("rule_update", rules);
     res.json({ success: true });
   } catch (e) {
     res.status(500).json({ error: "Rule update failed" });
@@ -286,7 +344,37 @@ app.get("/api/predictions", async (req, res) => {
   }
 });
 
-app.post("/api/ai/chat", async (req, res) => {
+app.get("/api/report/download", verifyToken, async (req, res) => {
+  const doc = new PDFDocument();
+  const filename = `WAF_Security_Report_${Date.now()}.pdf`;
+  res.setHeader("Content-disposition", `attachment; filename=${filename}`);
+  res.setHeader("Content-type", "application/pdf");
+  doc.pipe(res);
+  doc.fontSize(25).text("Smart WAF Security Report", { align: "center" });
+  doc.moveDown();
+  doc.fontSize(12).text(`Generated on: ${new Date().toLocaleString()}`);
+  doc.moveDown();
+  const stats = getStats();
+  doc.text(`Total Requests: ${stats.total}`);
+  doc.text(`Blocked Attacks: ${stats.blocked}`);
+  doc.text(`Allowance Rate: ${stats.allowed}`);
+  doc.text(`Block Rate: ${stats.blockRate}%`);
+  doc.moveDown();
+  doc.fontSize(18).text("Recent Critical Threats", { underline: true });
+  doc.moveDown();
+  try {
+    const threats = await Log.find({ status: "BLOCKED" }).sort({ timestamp: -1 }).limit(10);
+    threats.forEach((t, i) => {
+      doc.fontSize(10).text(`${i+1}. [${t.timestamp.toISOString()}] ${t.attackType} from ${t.ip}`);
+      doc.text(`   Path: ${t.path} | Risk: ${t.riskScore}%`);
+      doc.text(`   Details: ${t.explanation || "N/A"}`);
+      doc.moveDown(0.5);
+    });
+  } catch (err) {}
+  doc.end();
+});
+
+app.post("/api/ai/chat", verifyToken, async (req, res) => {
   const { message } = req.body;
   if (!process.env.GEMINI_API_KEY) {
     const stats = getStats();
@@ -344,36 +432,6 @@ app.post("/api/ai/chat", async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: "AI Error", details: err.message });
   }
-});
-
-app.get("/api/report/download", async (req, res) => {
-  const doc = new PDFDocument();
-  const filename = `WAF_Security_Report_${Date.now()}.pdf`;
-  res.setHeader("Content-disposition", `attachment; filename=${filename}`);
-  res.setHeader("Content-type", "application/pdf");
-  doc.pipe(res);
-  doc.fontSize(25).text("Smart WAF Security Report", { align: "center" });
-  doc.moveDown();
-  doc.fontSize(12).text(`Generated on: ${new Date().toLocaleString()}`);
-  doc.moveDown();
-  const stats = getStats();
-  doc.text(`Total Requests: ${stats.total}`);
-  doc.text(`Blocked Attacks: ${stats.blocked}`);
-  doc.text(`Allowance Rate: ${stats.allowed}`);
-  doc.text(`Block Rate: ${stats.blockRate}%`);
-  doc.moveDown();
-  doc.fontSize(18).text("Recent Critical Threats", { underline: true });
-  doc.moveDown();
-  try {
-    const threats = await Log.find({ status: "BLOCKED" }).sort({ timestamp: -1 }).limit(10);
-    threats.forEach((t, i) => {
-      doc.fontSize(10).text(`${i+1}. [${t.timestamp.toISOString()}] ${t.attackType} from ${t.ip}`);
-      doc.text(`   Path: ${t.path} | Risk: ${t.riskScore}%`);
-      doc.text(`   Details: ${t.explanation || "N/A"}`);
-      doc.moveDown(0.5);
-    });
-  } catch (err) {}
-  doc.end();
 });
 
 app.get("/api/system/health", verifyToken, (req, res) => {
@@ -465,7 +523,8 @@ if (cluster.isPrimary) {
         const token = socket.handshake.auth.token;
         if (!token) return next(new Error("Auth Error"));
         const jwt = require("jsonwebtoken");
-        const JWT_SECRET = process.env.JWT_SECRET || "ymcs-shield-super-secret-key-2026";
+        const JWT_SECRET = process.env.JWT_SECRET;
+        if (!JWT_SECRET) return next(new Error("Security Error: JWT_SECRET not set"));
         jwt.verify(token, JWT_SECRET, (err, decoded) => {
           if (err) return next(new Error("Auth Error"));
           socket.user = decoded;
@@ -496,6 +555,20 @@ if (cluster.isPrimary) {
 
       app.set("io", io);
       app.set("clusterBroadcast", clusterBroadcast);
+
+      setInterval(async () => {
+        try {
+          const { getHistory } = require("./src/utils/db");
+          const rawHistory = await getHistory();
+          const allowedHistory = rawHistory.map(h => h.allowed);
+          const blockedHistory = rawHistory.map(h => h.blocked);
+          while (allowedHistory.length < 20) allowedHistory.unshift(0);
+          while (blockedHistory.length < 20) blockedHistory.unshift(0);
+          clusterBroadcast("history_update", { allowed: allowedHistory, blocked: blockedHistory });
+        } catch (e) {
+          console.error("History broadcast error:", e.message);
+        }
+      }, 30000);
 
       const gracefulShutdown = () => {
         server.close(async () => {

@@ -36,7 +36,7 @@ export default function ThreatMap({ threats }) {
   };
 
   const activeMarkers = threats
-    .filter(t => t.country !== "Localhost")
+    .filter(t => t.country !== "Localhost" && t.country !== "Unknown")
     .map(t => ({
       ...t,
       coords: coordinates[t.country] || fallbackCoords(t.ip)

@@ -160,7 +160,7 @@ async function getHistory(limit = 20) {
 async function getRules() {
   if (isDBConnected) {
     try {
-      const dbRules = await Rule.find();
+      const dbRules = await Rule.find().lean();
       if (dbRules.length > 0) return dbRules;
       // Initialize DB with defaults if empty
       await Rule.insertMany(DEFAULT_RULES);

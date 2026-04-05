@@ -2,8 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { io } from "socket.io-client";
 import API_BASE, { BACKEND_BASE } from "../config";
 
-export default function useSimulator() {
-  const [running, setRunning]   = useState(true);
+export default function useSimulator(onLogout) {
+  const [running, setRunning]   = useState(false);
   const [status, setStatus]     = useState("loading"); // online, offline, loading
   const [threats, setThreats]   = useState([]);
   const [logs, setLogs]         = useState([]);
@@ -25,7 +25,8 @@ export default function useSimulator() {
       const sRes = await fetch(`${API_BASE}/stats`, { headers });
       if (sRes.status === 401) {
         localStorage.removeItem("waf_jwt_token");
-        window.location.reload();
+        setStatus("unauthorized");
+        if (onLogout) onLogout();
         return;
       }
       const sData = await sRes.json();
@@ -119,6 +120,14 @@ export default function useSimulator() {
       }
     });
 
+    socket.on("rule_update", (newRules) => {
+      setRules(newRules);
+    });
+
+    socket.on("history_update", (newHistory) => {
+      setHistory(newHistory);
+    });
+
     socket.on("connect_error", (err) => {
       console.warn("Socket connection error:", err.message);
       setStatus("offline");
@@ -127,7 +136,7 @@ export default function useSimulator() {
     return () => {
       if (socket) socket.disconnect();
     };
-  }, [running]);
+  }, [running, onLogout]);
 
   return { running, setRunning, status, threats, setThreats, logs, counters, history, rules, setRules };
 }

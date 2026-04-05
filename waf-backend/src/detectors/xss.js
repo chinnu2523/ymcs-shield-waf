@@ -26,21 +26,17 @@ const XSS_PATTERNS = [
   /document\.write/i,
   /window\.location/i,
   
-  // SVG Injections
-  /<svg[^>]*onload/i,
-  /<svg[^>]*onmouseover/i,
-  
-  // Malformed Tags
-  /<img[^>]+src[^>]*>/i,
-  /<svg[^>]*>/i,
+  // SVG Injections (Only malicious ones)
+  /<svg[^>]*\son[a-z]+\s*=/i,
+
+  // Remove broad img/svg blocks to prevent false positives — only block specific event handlers
+  // The global event handler pattern on line 10 already catches most of these.
 ];
 
 const DANGEROUS_TAGS = [
   "script", "iframe", "object",
   "embed", "applet", "meta",
-  "link", "style", "base",
-  "form", "svg", "body", "html",
-  "video", "audio", "source"
+  "link", "style", "base"
 ];
 
 function detectXSS(input) {

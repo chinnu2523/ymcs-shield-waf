@@ -12,14 +12,14 @@ export default function RulesPage({ rules = [], setRules }) {
     setSaving(true);
     try {
       const res = await fetch(`${API_BASE}/rules/${id}`, {
-        method: "POST",
+        method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(updates)
       });
       if (res.ok) {
         // Optimistic update
         setRules(prev => prev.map(r => r.id === id ? { ...r, ...updates } : r));
-        setEditingRule(null);
+        setEditingRule(prev => prev && prev.id === id ? { ...prev, ...updates } : prev);
       }
     } catch (e) {
       console.error("Failed to update rule:", e);

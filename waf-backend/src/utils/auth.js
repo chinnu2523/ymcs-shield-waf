@@ -2,7 +2,11 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const { User } = require("./db");
 
-const JWT_SECRET = process.env.JWT_SECRET || "ymcs-shield-super-secret-key-2026";
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  console.error("CRITICAL ERROR: JWT_SECRET environment variable is not set.");
+  process.exit(1);
+}
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || "visaka";
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "visaka"; // default password
 

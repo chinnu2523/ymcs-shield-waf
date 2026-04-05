@@ -2,7 +2,7 @@ const { saveLog } = require("./db");
 
 let buffer = [];
 const BUFFER_LIMIT = 50;
-const FLUSH_INTERVAL_MS = 10000; // 10 seconds
+const FLUSH_INTERVAL_MS = 2000; // 2 seconds — faster sync for live HUD
 
 function addLog(logData) {
   buffer.push(logData);

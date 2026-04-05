@@ -29,12 +29,17 @@ const VIEW_STATES = {
 export default function App() {
   const [viewState, setViewState] = useState(VIEW_STATES.LANDING);
   const [activeView, setActiveView] = useState("dashboard"); // Sidebar uses lowercase IDs
+  const onLogout = React.useCallback(() => {
+    setViewState(VIEW_STATES.LOGIN);
+    setRunning(false);
+  }, []);
+
   const {
     running, setRunning, status,
     threats, setThreats,
     logs, counters, history,
     rules, setRules,
-  } = useSimulator();
+  } = useSimulator(onLogout);
 
   // Handle Boot Sequence Delay
   useEffect(() => {
