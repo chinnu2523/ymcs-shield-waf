@@ -31,6 +31,14 @@ export default function App() {
   const [viewState, setViewState] = useState(VIEW_STATES.LANDING);
   const [activeView, setActiveView] = useState("dashboard"); // Sidebar uses lowercase IDs
   const [currentUser, setCurrentUser] = useState(null);
+  const [theme, setTheme] = useState(localStorage.getItem("waf_theme") || "dark");
+
+  const toggleTheme = () => {
+    const newTheme = theme === "dark" ? "light" : "dark";
+    setTheme(newTheme);
+    localStorage.setItem("waf_theme", newTheme);
+  };
+
   const onLogout = React.useCallback(() => {
     setViewState(VIEW_STATES.LOGIN);
     setRunning(false);
@@ -126,7 +134,7 @@ export default function App() {
   );
 
   return (
-    <div className="min-h-screen bg-bg-dark font-sans text-text-main overflow-hidden">
+    <div className={`min-h-screen bg-bg-dark font-sans text-text-main overflow-hidden ${theme === 'light' ? 'light-mode' : ''}`}>
       
       {/* ── View Orchestrator ── */}
       {viewState === VIEW_STATES.LANDING && (
@@ -148,7 +156,13 @@ export default function App() {
       {viewState === VIEW_STATES.APP && (
         <CyberBackground>
           <div className="view-container">
-            <Sidebar activeView={activeView} setActiveView={setActiveView} currentUser={currentUser} />
+            <Sidebar 
+              activeView={activeView} 
+              setActiveView={setActiveView} 
+              currentUser={currentUser} 
+              theme={theme} 
+              toggleTheme={toggleTheme} 
+            />
 
             <main className="flex-1 p-10 overflow-y-auto custom-scrollbar relative">
               

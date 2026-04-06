@@ -11,10 +11,12 @@ import {
   Terminal,
   Cpu,
   Users,
-  Brain
+  Brain,
+  Sun,
+  Moon
 } from "lucide-react";
 
-export default function Sidebar({ activeView, setActiveView, currentUser = {} }) {
+export default function Sidebar({ activeView, setActiveView, currentUser = {}, theme, toggleTheme }) {
   const isAdmin = currentUser?.role === "admin" || currentUser?.role === "superadmin";
   const menuItems = [
     { id: "dashboard",      icon: <LayoutDashboard size={18} />, label: "Dashboard",       badge: null,   section: "main" },
@@ -107,8 +109,30 @@ export default function Sidebar({ activeView, setActiveView, currentUser = {} })
         </div>
         {toolItems.map(item => <NavItem key={item.id} item={item} />)}
 
+        {/* ── Neural Spectrum Toggle ── */}
+        <div className="mt-4 px-2">
+          <button
+            onClick={toggleTheme}
+            className="group flex items-center justify-between w-full p-4 rounded-xl transition-all duration-300 relative overflow-hidden bg-white/5 border border-white/10 text-dim hover:text-primary hover:border-primary/20 hover:bg-primary/5"
+          >
+            <div className="flex items-center gap-4 relative z-10">
+              <div className="transition-colors group-hover:text-primary">
+                {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
+              </div>
+              <span className="text-[11px] font-black uppercase tracking-widest opacity-60 group-hover:opacity-100">
+                {theme === "dark" ? "Light Mode" : "Dark Mode"}
+              </span>
+            </div>
+            
+            <div className="flex items-center gap-1.5 opacity-40 group-hover:opacity-100">
+               <div className={`w-1.5 h-1.5 rounded-full ${theme === "dark" ? "bg-dim" : "bg-primary animate-pulse"}`} />
+               <div className={`w-1.5 h-1.5 rounded-full ${theme === "light" ? "bg-dim" : "bg-primary animate-pulse"}`} />
+            </div>
+          </button>
+        </div>
+
         {/* ── Sign Out Button ── */}
-        <div className="mt-8 mb-4 px-2">
+        <div className="mt-4 mb-4 px-2">
           <button
             onClick={() => {
               localStorage.removeItem("waf_jwt_token");

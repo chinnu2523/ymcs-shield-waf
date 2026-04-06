@@ -59,9 +59,38 @@
   --border:           rgba(255, 255, 255, 0.07);
   --border-hover:     rgba(0, 242, 255, 0.20);
 
+  /* Shadows */
+  --shadow-main:      rgba(0, 0, 0, 0.6);
+  --shadow-glow:      0 0 20px -8px var(--primary-glow);
+
   /* Typography */
   --font-sans:        'Inter', system-ui, -apple-system, sans-serif;
   --font-mono:        'JetBrains Mono', 'Fira Code', monospace;
+}
+
+/* Neural Spectrum — Light Mode Overrides */
+.light-mode {
+  --bg-dark:          #f8fafc;
+  --bg-deep:          #f1f5f9;
+  --bg-panel:         rgba(255, 255, 255, 0.85);
+  --bg-card:          rgba(255, 255, 255, 0.60);
+
+  --text-main:        #0f172a;
+  --text-dim:         #475569;
+  --text-muted:       #94a3b8;
+
+  --border:           rgba(0, 0, 0, 0.08);
+  --border-hover:     rgba(0, 242, 255, 0.30);
+
+  --shadow-main:      rgba(0, 0, 0, 0.05);
+  
+  /* Adjusted Neon Glows for better white-field visibility */
+  --primary-glow:     rgba(0, 242, 255, 0.45);
+  --primary-dim:      rgba(0, 242, 255, 0.12);
+  --secondary-glow:   rgba(189, 0, 255, 0.40);
+  --secondary-dim:    rgba(189, 0, 255, 0.12);
+  --success-glow:     rgba(0, 255, 149, 0.40);
+  --success-dim:      rgba(0, 255, 149, 0.12);
 }
 
 /* ============================================================
@@ -628,14 +657,14 @@ h4 { font-size: 0.875rem; line-height: 1.4; font-weight: 700; }
   -webkit-backdrop-filter: blur(40px);
   background: var(--bg-panel);
   border: 1px solid var(--border);
-  box-shadow: 0 8px 32px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.05);
+  box-shadow: 0 8px 32px var(--shadow-main), inset 0 1px 0 rgba(255,255,255,0.05);
   border-radius: 16px;
-  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
 }
 
 .glass-panel:hover {
   border-color: var(--border-hover);
-  box-shadow: 0 12px 48px rgba(0,0,0,0.7), 0 0 20px -8px var(--primary-glow), inset 0 1px 0 rgba(255,255,255,0.07);
+  box-shadow: 0 12px 48px var(--shadow-main), var(--shadow-glow), inset 0 1px 0 rgba(255,255,255,0.07);
 }
 
 /* Secondary card — dashboard tiles, threat cards, rule cards */
@@ -644,15 +673,15 @@ h4 { font-size: 0.875rem; line-height: 1.4; font-weight: 700; }
   -webkit-backdrop-filter: blur(24px);
   background: var(--bg-card);
   border: 1px solid var(--border);
-  box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+  box-shadow: 0 4px 24px var(--shadow-main);
   border-radius: 16px;
   transition: border-color 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
 }
 
 .glass-card:hover {
-  background: rgba(14, 20, 32, 0.8);
-  border-color: rgba(0, 242, 255, 0.15);
-  box-shadow: 0 8px 32px rgba(0,0,0,0.6), 0 0 12px -4px var(--primary-glow);
+  background: var(--bg-card); /* Keep variable background */
+  border-color: var(--border-hover);
+  box-shadow: 0 8px 32px var(--shadow-main), 0 0 12px -4px var(--primary-glow);
 }
 
 /* Academic / HUD card — small info panels */
