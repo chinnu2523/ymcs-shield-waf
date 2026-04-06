@@ -14,6 +14,7 @@ import BlocklistManager from "./components/BlocklistManager";
 import CyberBackground from "./components/CyberBackground";
 import LandingPage    from "./components/LandingPage";
 import Login from "./components/Login";
+import UsersManagement from "./components/UsersManagement";
 import ProjectMeta    from "./components/ProjectMeta";
 import UserDashboard  from "./components/UserDashboard";
 import PredictionPanel from "./components/PredictionPanel";
@@ -29,6 +30,7 @@ const VIEW_STATES = {
 export default function App() {
   const [viewState, setViewState] = useState(VIEW_STATES.LANDING);
   const [activeView, setActiveView] = useState("dashboard"); // Sidebar uses lowercase IDs
+  const [currentUser, setCurrentUser] = useState(null);
   const onLogout = React.useCallback(() => {
     setViewState(VIEW_STATES.LOGIN);
     setRunning(false);
@@ -133,7 +135,10 @@ export default function App() {
 
       {viewState === VIEW_STATES.LOGIN && (
         <Login 
-          onSuccess={() => setViewState(VIEW_STATES.BOOT)} 
+          onSuccess={(user) => {
+            setCurrentUser(user);
+            setViewState(VIEW_STATES.BOOT);
+          }} 
           onBack={() => setViewState(VIEW_STATES.LANDING)} 
         />
       )}
@@ -143,7 +148,7 @@ export default function App() {
       {viewState === VIEW_STATES.APP && (
         <CyberBackground>
           <div className="view-container">
-            <Sidebar activeView={activeView} setActiveView={setActiveView} />
+            <Sidebar activeView={activeView} setActiveView={setActiveView} currentUser={currentUser} />
 
             <main className="flex-1 p-10 overflow-y-auto custom-scrollbar relative">
               
@@ -174,6 +179,7 @@ export default function App() {
                     {activeView === "reporting"      && <Reporting />}
                     {activeView === "livelog"        && <LiveLog logs={logs} />}
                     {activeView === "blocklist"      && <BlocklistManager />}
+                    {activeView === "users"          && <UsersManagement currentUser={currentUser} />}
                     {activeView === "settings"       && <SettingsPage />}
                   </motion.div>
                 </AnimatePresence>

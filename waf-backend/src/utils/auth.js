@@ -20,8 +20,8 @@ async function seedAdminUser() {
     const existingAdmin = await User.findOne({ username: ADMIN_USERNAME });
     if (!existingAdmin) {
       const passwordHash = await bcrypt.hash(ADMIN_PASSWORD, 10);
-      await User.create({ username: ADMIN_USERNAME, passwordHash, role: "admin" });
-      console.log("🔐 Admin user seeded successfully");
+      await User.create({ username: ADMIN_USERNAME, passwordHash, role: "superadmin" });
+      console.log("🔐 Superadmin user seeded successfully");
     }
   } catch (error) {
     console.error("Error seeding admin user:", error.message);

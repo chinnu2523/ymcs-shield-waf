@@ -1,10 +1,15 @@
 import React, { useState, useEffect } from "react";
-import { Settings, Sliders, Clock, Database, Mail, HardDrive, ShieldCheck, Activity, AlertTriangle, Eye, Save } from "lucide-react";
+import { Settings, Sliders, Clock, Database, Mail, HardDrive, ShieldCheck, Activity, AlertTriangle, Eye, EyeOff, Save, Lock, RefreshCw, CheckCircle2 } from "lucide-react";
 import API_BASE from "../config";
 
 export default function SettingsPage() {
   const [activeMode, setActiveMode] = useState(2); // 0=Monitor, 1=Detection, 2=Prevention
   const [loading, setLoading] = useState(true);
+
+  // Password Change State
+  const [passData, setPassData] = useState({ old: "", new: "", confirm: "" });
+  const [showPass, setShowPass] = useState({ old: false, new: false, confirm: false });
+  const [passStatus, setPassStatus] = useState({ state: "idle", message: "" }); // idle, loading, success, error
   
   const [sysConfig, setSysConfig] = useState({
     "Rate Limit Threshold": "100 req/min",
@@ -40,6 +45,42 @@ export default function SettingsPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ activeMode: i })
     });
+  };
+
+  const handleChangePassword = async (e) => {
+    e.preventDefault();
+    if (passData.new !== passData.confirm) {
+      setPassStatus({ state: "error", message: "Key Mismatch: Confirmation does not match" });
+      return;
+    }
+
+    try {
+      setPassStatus({ state: "loading", message: "Encrypting New Neural Key..." });
+      const token = localStorage.getItem("waf_jwt_token");
+      const res = await fetch(`${API_BASE}/auth/change-password`, {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({ oldPassword: passData.old, newPassword: passData.new })
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Neural Sync Failed");
+
+      setPassStatus({ state: "success", message: "Neural Key Rotated Successfully" });
+      setPassData({ old: "", new: "", confirm: "" });
+      
+      // Auto-logout after success for security verification
+      setTimeout(() => {
+        localStorage.removeItem("waf_jwt_token");
+        window.location.reload();
+      }, 2000);
+
+    } catch (err) {
+      setPassStatus({ state: "error", message: `Breach: ${err.message}` });
+    }
   };
 
   const configsFields = [
@@ -216,6 +257,116 @@ export default function SettingsPage() {
             );
           })}
         </div>
+      </div>
+
+      {/* Neural Identity Security (Password Change) */}
+      <div className="glass-card p-8 relative overflow-hidden">
+        <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
+           <Lock size={120} />
+        </div>
+
+        <div className="flex items-center gap-3 mb-8">
+          <div style={{ padding: "7px 9px", background: "rgba(0,255,149,0.08)", borderRadius: 10, border: "1px solid rgba(0,255,149,0.20)" }}>
+            <Lock size={16} style={{ color: "var(--success)" }} />
+          </div>
+          <div>
+            <h2 style={{ fontSize: 13, fontWeight: 900, color: "var(--text-main)", textTransform: "uppercase", letterSpacing: "0.15em" }}>Neural Identity Security</h2>
+            <p style={{ fontSize: 10, color: "var(--text-dim)", letterSpacing: "0.1em", textTransform: "uppercase", fontWeight: 700, marginTop: 2 }}>
+              Rotate authentication keys
+            </p>
+          </div>
+        </div>
+
+        <form onSubmit={handleChangePassword} className="max-w-2xl">
+          {passStatus.message && (
+            <div className={`mb-6 p-4 rounded-xl flex items-center gap-3 border animate-fade-in ${
+              passStatus.state === "error" ? "bg-danger/10 border-danger/20 text-danger" : 
+              passStatus.state === "success" ? "bg-success/10 border-success/20 text-success" : 
+              "bg-primary/10 border-primary/20 text-primary"
+            }`}>
+              {passStatus.state === "loading" && <RefreshCw size={16} className="animate-spin" />}
+              {passStatus.state === "success" && <CheckCircle2 size={16} />}
+              {passStatus.state === "error" && <AlertTriangle size={16} />}
+              <span className="text-[10px] font-black uppercase tracking-widest">{passStatus.message}</span>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <div className="space-y-2">
+              <label className="text-[9px] font-black text-dim uppercase tracking-widest ml-1">Current Neural Key</label>
+              <div className="relative">
+                <input 
+                  type={showPass.old ? "text" : "password"}
+                  required
+                  value={passData.old}
+                  onChange={e => setPassData(prev => ({ ...prev, old: e.target.value }))}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-xs font-bold text-white outline-none focus:border-primary/40 transition-all pr-12"
+                  placeholder="••••••••••••"
+                />
+                <button 
+                  type="button" 
+                  onClick={() => setShowPass(p => ({ ...p, old: !p.old }))}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-dim hover:text-white"
+                >
+                  {showPass.old ? <EyeOff size={14} /> : <Eye size={14} />}
+                </button>
+              </div>
+            </div>
+
+            <div className="hidden md:block" />
+
+            <div className="space-y-2">
+              <label className="text-[9px] font-black text-dim uppercase tracking-widest ml-1">New Neural Key</label>
+              <div className="relative">
+                <input 
+                  type={showPass.new ? "text" : "password"}
+                  required
+                  value={passData.new}
+                  onChange={e => setPassData(prev => ({ ...prev, new: e.target.value }))}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-xs font-bold text-white outline-none focus:border-primary/40 transition-all pr-12"
+                  placeholder="NEW_KEY_0X..."
+                />
+                <button 
+                  type="button" 
+                  onClick={() => setShowPass(p => ({ ...p, new: !p.new }))}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-dim hover:text-white"
+                >
+                  {showPass.new ? <EyeOff size={14} /> : <Eye size={14} />}
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-[9px] font-black text-dim uppercase tracking-widest ml-1">Confirm New Key</label>
+              <div className="relative">
+                <input 
+                  type={showPass.confirm ? "text" : "password"}
+                  required
+                  value={passData.confirm}
+                  onChange={e => setPassData(prev => ({ ...prev, confirm: e.target.value }))}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-xs font-bold text-white outline-none focus:border-primary/40 transition-all pr-12"
+                  placeholder="VERIFY_KEY..."
+                />
+                <button 
+                  type="button" 
+                  onClick={() => setShowPass(p => ({ ...p, confirm: !p.confirm }))}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-dim hover:text-white"
+                >
+                  {showPass.confirm ? <EyeOff size={14} /> : <Eye size={14} />}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <button 
+            type="submit"
+            disabled={passStatus.state === "loading" || passStatus.state === "success"}
+            className="flex items-center gap-2 bg-primary text-black font-black text-[10px] uppercase tracking-widest px-8 py-3.5 rounded-xl hover:scale-105 active:scale-95 transition-all shadow-[0_0_20px_rgba(0,242,255,0.2)] disabled:opacity-50 disabled:scale-100"
+          >
+            <RefreshCw size={14} className={passStatus.state === "loading" ? "animate-spin" : ""} />
+            Rotate Neural Key
+          </button>
+        </form>
       </div>
 
       {/* Footer Note */}

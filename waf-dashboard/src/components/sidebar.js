@@ -14,7 +14,8 @@ import {
   Brain
 } from "lucide-react";
 
-export default function Sidebar({ activeView, setActiveView }) {
+export default function Sidebar({ activeView, setActiveView, currentUser = {} }) {
+  const isAdmin = currentUser?.role === "admin" || currentUser?.role === "superadmin";
   const menuItems = [
     { id: "dashboard",      icon: <LayoutDashboard size={18} />, label: "Dashboard",       badge: null,   section: "main" },
     { id: "threats",        icon: <ShieldAlert size={18} />,     label: "Threats",         badge: "LIVE", section: "main" },
@@ -25,12 +26,13 @@ export default function Sidebar({ activeView, setActiveView }) {
     { id: "blocklist",      icon: <ShieldAlert size={18} />,     label: "Blocklist",       badge: "CTRL", section: "tools" },
     { id: "ai",             icon: <MessageSquare size={18} />,   label: "AI Analyst",      badge: "BETA", section: "tools" },
     { id: "reporting",      icon: <FileText size={18} />,        label: "Reporting",       badge: null,   section: "tools" },
+    { id: "users",          icon: <Users size={18} />,           label: "Users Admin",     badge: "SEC",  section: "tools", adminOnly: true },
     { id: "livelog",        icon: <Terminal size={18} />,        label: "Forensic Logs",   badge: "LIVE", section: "tools" },
     { id: "settings",       icon: <Settings size={18} />,        label: "Settings",        badge: null,   section: "tools" },
   ];
 
-  const mainItems = menuItems.filter(i => i.section === "main");
-  const toolItems = menuItems.filter(i => i.section === "tools");
+  const mainItems = menuItems.filter(i => i.section === "main" && (!i.adminOnly || isAdmin));
+  const toolItems = menuItems.filter(i => i.section === "tools" && (!i.adminOnly || isAdmin));
 
   const NavItem = ({ item }) => {
     const isActive = activeView === item.id;
@@ -39,6 +41,7 @@ export default function Sidebar({ activeView, setActiveView }) {
       "NEW":  "text-primary border-primary/30 bg-primary/10",
       "AI":   "text-secondary border-secondary/30 bg-secondary/10",
       "BETA": "text-warning border-warning/30 bg-warning/10",
+      "SEC":  "text-danger border-danger/30 bg-danger/10",
     };
     return (
       <button

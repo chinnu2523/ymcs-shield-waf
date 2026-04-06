@@ -9,8 +9,10 @@ const PDFDocument = require("pdfkit");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 const { wafMiddleware, getStats, resetStats, syncStats } = require("./src/waf");
-const { connectDB, Log, Stat, getLogs, getHistory, getRules, updateRule, resetData, BlockedIP, Setting } = require("./src/utils/db");
+const { connectDB, Log, Stat, getLogs, getHistory, getRules, updateRule, resetData, BlockedIP, User, Setting } = require("./src/utils/db");
 const { login, seedAdminUser, verifyToken } = require("./src/utils/auth");
+const authorize = require("./src/utils/rbac");
+const bcrypt = require("bcryptjs");
 const monitor = require("./src/utils/systemMonitor");
 const { Server } = require("socket.io");
 const { createAdapter } = require("@socket.io/redis-adapter");
@@ -63,6 +65,74 @@ app.post("/api/auth/login", async (req, res) => {
     res.json(result);
   } catch (err) {
     res.status(401).json({ error: err.message });
+  }
+});
+
+app.post("/api/auth/change-password", verifyToken, async (req, res) => {
+  try {
+    const { oldPassword, newPassword } = req.body;
+    if (!oldPassword || !newPassword) {
+      return res.status(400).json({ error: "Required: Current and New Neural Keys" });
+    }
+
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ error: "Identity not found" });
+
+    const isMatch = await bcrypt.compare(oldPassword, user.passwordHash);
+    if (!isMatch) return res.status(401).json({ error: "Invalid Current Neural Key" });
+
+    user.passwordHash = await bcrypt.hash(newPassword, 10);
+    await user.save();
+
+    res.json({ success: true, message: "Neural Key Rotated Successfully" });
+  } catch (err) {
+    res.status(500).json({ error: "Neural Sync Failed", detail: err.message });
+  }
+});
+
+// ── User Management (Admin Only) ──────────────────────────────────
+
+app.get("/api/users", verifyToken, authorize(["admin"]), async (req, res) => {
+  try {
+    const users = await User.find({}, "-passwordHash");
+    res.json(users);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch users" });
+  }
+});
+
+app.post("/api/users", verifyToken, authorize(["admin"]), async (req, res) => {
+  try {
+    const { username, password, role } = req.body;
+    if (!username || !password) return res.status(400).json({ error: "Username and password required" });
+    
+    const existing = await User.findOne({ username });
+    if (existing) return res.status(400).json({ error: "User already exists" });
+
+    const passwordHash = await bcrypt.hash(password, 10);
+    const newUser = await User.create({ username, passwordHash, role: role || "viewer" });
+    res.json({ success: true, user: { id: newUser._id, username: newUser.username, role: newUser.role } });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to create user" });
+  }
+});
+
+app.delete("/api/users/:id", verifyToken, authorize(["admin"]), async (req, res) => {
+  try {
+    const userToDelete = await User.findById(req.params.id);
+    if (!userToDelete) return res.status(404).json({ error: "User not found" });
+
+    // Prevent deleting the primary superadmin via API for safety
+    if (userToDelete.username === process.env.ADMIN_USERNAME || "visaka") {
+       if (req.user.role !== 'superadmin') {
+         return res.status(403).json({ error: "Only a Superadmin can modify the primary account." });
+       }
+    }
+
+    await User.findByIdAndDelete(req.params.id);
+    res.json({ success: true, message: "User deleted" });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to delete user" });
   }
 });
 
@@ -137,7 +207,7 @@ app.delete("/api/blocklist/:ip", verifyToken, async (req, res) => {
   }
 });
 
-app.post("/api/reset", verifyToken, async (req, res) => {
+app.post("/api/reset", verifyToken, authorize(["admin"]), async (req, res) => {
   try {
     await resetData();
     resetStats();
@@ -188,7 +258,7 @@ app.get("/api/settings", verifyToken, async (req, res) => {
   }
 });
 
-app.post("/api/settings", verifyToken, async (req, res) => {
+app.post("/api/settings", verifyToken, authorize(["admin"]), async (req, res) => {
   try {
     const keys = Object.keys(req.body);
     for (let key of keys) {
